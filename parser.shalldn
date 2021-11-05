@@ -1,0 +1,56 @@
+# Definition of the Shalldn *parser*
+* Implements the **Shalldn parser**
+
+## Requirements
+**Parser.RQ_statement**  
+The parser **shall** recognize a sentence as a requirement if the sentence is preceded by a *separately bolded* *(i.e. surrounded by bold markdown immediately on both sides)* *identifier* *(a contiguous group of alphanumeric, '_' and '_' characters)* and includes the document subject followed by separately bolded word "shall".
+
+**Parser.DOC_Subject**  
+The parser **shall** use the only italicized group of words in the first line of the document file as the document subject.
+
+**Parser.ERR_No_DOC_Subject**  
+The parser **shall** indicate error condition when the first line in the document file does not contain a single italicized group of words.
+
+**Parser.ERR_No_RQ_ID**  
+The parser **shall** indicate error condition when a sentence containing document subject followed by separately bolded word "shall" is not preceded by a separately bolded identifier.
+
+**Parser.ERR_DUP_RQ_ID**  
+The parser **shall** indicate error condition when the same separately bolded identifier is preceding multiple requirements.
+
+**Parser.ERR_NO_SUBJ**  
+The parser **shall** indicate error condition when a sentence preceded by a separately bolded identifier contains a separately bolded word "shall" that is not following the document subject.
+
+**Parser.ERR_DUP_SHALL**  
+The parser **shall** indicate error condition when a sentence recognized as a requirement contains multiple words "shall" not included in quotation marks.
+
+## Justification of requirements
+**Parser.IMPLMNT_GRP**  
+The parser **shall** recognize a phrase as a *group implementation link* *(n.b.)* when the phrase starts with the word "Implements", contain a single bolded group of words and is an item of an unordered list that immediately follows a heading.
+
+**Parser.IMPLMNT_IND**  
+The parser **shall** recognize a phrase as an *individual implementation link* *(n.b.)* when the phrase starts with the word "Implements" and is an item of an unordered list that immediately follows a requirement.
+
+**Parser.RTNL**  
+The parser **shall** recognize a text fragment as a *rationale clause* *(n.b.)* for a requirement when the fragment is indented under an unordered list item that starts with the word "Rationale" and is a part of an unordered list immediately following the requirement.
+
+**Parser.ERR_NO_JSTFCTN**  
+The parser **shall** indicate error condition when a requirement that is not within a section with a group implementation link and is not followed by unordered list that includes either individual implementation link or rationale clause.
+
+**Parser.ERR_NO_JSTFCTN**  
+The parser **shall** indicate warning condition when a requirement that is not within a section with a group implementation link and is not followed by unordered list that includes rationale clause but not an individual implementation link.
+
+## Inline definitions
+**Parsers.INLN_DEF_DRCT**  
+The parser **shall** recognize a group of words as a *direct inline definition* *(n.b.)* when it is composed of an italicized group of words immediately followed by a group of words starting with abbreviation "i.e." and enclosed in *separately italicized* *(i.e. surrounded by italic markdown immediately on both sides)* parenthesis where the first group is the *subject of direct inline definition* *(n.b.)* and the second group excluding (i.e.) the *body of direct inline definition* *(n.b.)*.
+
+**Parsers.INLN_DEF_REV**  
+The parser **shall** recognize a group of words as a *reverse inline definition* *(n.b.)* when it is composed of an italicized group of words immediately followed by a group of words enclosed in separately italicized parenthesis where the first group is the *body of reverse inline definition* *(n.b.)* and the second group is the *subject of reverse inline definition* *(n.b.)*.
+
+**Parsers.INLN_DEF_IMP**  
+The parser **shall** recognize a sentence as an *implicit inline definition* *(n.b.)* when it contains an italicized group of words followed by an enclosed in a separately italicized parenthesis abbreviation "n.b.", where this group of words is the *subject of implicit inline definition* *(n.b.)* and the whole sentence is the *body of implicit inline definition* *(n.b.)*.
+
+**Parser.ERR_INLN_DUP**  
+The parser **shall** indicate error condition when a recognized inline definition has the same *subject of inline definition* *(i.e. either subject of direct inline definition, subject of reverse definition or subject of implicit inline definition)* as another inline definition.
+
+
+
