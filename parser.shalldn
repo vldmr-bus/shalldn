@@ -3,7 +3,7 @@
 
 ## Requirements
 **Parser.RQ_statement**  
-The parser **shall** recognize a sentence as a requirement if the sentence is preceded by a *separately bolded* *(i.e. surrounded by bold markdown immediately on both sides)* *identifier* *(a contiguous group of alphanumeric, '_' and '_' characters)* and includes the document subject followed by separately bolded word "shall".
+The parser **shall** recognize a sentence as a requirement if the sentence is preceded by a *separately bolded* *(i.e. surrounded by bold markdown immediately on both sides)* *identifier* *(a contiguous group of alphanumeric, '_' and '.' characters)* and includes the document subject followed by separately bolded word "shall".
 
 **Parser.DOC_Subject**  
 The parser **shall** use the only italicized group of words in the first line of the document file as the document subject.
@@ -41,7 +41,7 @@ The parser **shall** indicate warning condition when a requirement that is not w
 
 ## Inline definitions
 **Parsers.INLN_DEF_DRCT**  
-The parser **shall** recognize a group of words as a *direct inline definition* *(n.b.)* when it is composed of an italicized group of words immediately followed by a group of words starting with abbreviation "i.e." and enclosed in *separately italicized* *(i.e. surrounded by italic markdown immediately on both sides)* parenthesis where the first group is the *subject of direct inline definition* *(n.b.)* and the second group excluding (i.e.) the *body of direct inline definition* *(n.b.)*.
+The parser **shall** recognize a group of words as a *direct inline definition* *(n.b.)* when it is composed of an italicized group of words immediately followed by a group of words starting with abbreviation "i.e." and enclosed in *separately italicized* *(i.e. surrounded by italic markdown immediately on both sides)* parenthesis where the first group is the *subject of direct inline definition* *(n.b.)* and the second group excluding "i.e." the *body of direct inline definition* *(n.b.)*.
 
 **Parsers.INLN_DEF_REV**  
 The parser **shall** recognize a group of words as a *reverse inline definition* *(n.b.)* when it is composed of an italicized group of words immediately followed by a group of words enclosed in separately italicized parenthesis where the first group is the *body of reverse inline definition* *(n.b.)* and the second group is the *subject of reverse inline definition* *(n.b.)*.
