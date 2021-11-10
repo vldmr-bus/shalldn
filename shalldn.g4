@@ -1,6 +1,6 @@
 grammar shalldn;
 
-WHITESPACE : (' ' |'\t')+ -> skip;
+WHITESPACE : (' ' |'\t'|'\r')+? -> skip;
 fragment WORD_CHAR: [a-zA-Z_0-9];
 fragment CAPITAL_CHAR: [A-Z];
 
