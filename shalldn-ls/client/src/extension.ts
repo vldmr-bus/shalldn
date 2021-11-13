@@ -48,7 +48,7 @@ export function activate(context: ExtensionContext) {
 	// Create the language client and start the client.
 	client = new LanguageClient(
 		'shalldnLanguageServer',
-		'Language Server Example',
+		'Shalldn Language Server',
 		serverOptions,
 		clientOptions
 	);

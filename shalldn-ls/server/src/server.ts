@@ -21,9 +21,10 @@ import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
 
-import { ANTLRErrorListener, CharStreams, CommonTokenStream, RecognitionException, Recognizer, ParserErrorListener, Token } from 'antlr4ts';
+import { ANTLRErrorListener, CharStreams, CommonTokenStream, RecognitionException, Recognizer, ParserErrorListener, Token, DiagnosticErrorListener } from 'antlr4ts';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
 
+var debug = /--inspect/.test(process.execArgv.join(' '))
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -143,31 +144,18 @@ import { shalldnParser } from './antlr/shalldnParser'
 import ShalldnDocumentBuilder from './ShalldnDocumentBuilder';
 import { ParseTreeListener } from 'antlr4ts/tree/ParseTreeListener';
 import ShalldnDoc from './model/ShalldnDoc';
+import { Diagnostics } from './Diagnostics';
 
 let diagnostics: Diagnostic[] = [];
 
 class LexerErrorListener implements ANTLRErrorListener<number> {
 	syntaxError<T>(recognizer: Recognizer<T, any>, offendingSymbol: T|undefined, line: number, charPositionInLine: number, msg: string, e: RecognitionException | undefined): void {
-		const diagnostic: Diagnostic = {
-			severity: DiagnosticSeverity.Error,
-			range: {
-				start: {line,character:charPositionInLine},
-				end: { line, character: charPositionInLine}
-			},
-			message: msg,
-			source: 'ex'
-		};
-		if (hasDiagnosticRelatedInformationCapability && e!==undefined) {
-			diagnostic.relatedInformation = [
-				{
-					location: {
-						uri: "",
-						range: Object.assign({}, diagnostic.range)
-					},
-					message: e.message
-				}
-			];
-		}
+		const diagnostic = Diagnostics.error(msg,
+			{ line, character: charPositionInLine },
+			{ line, character: charPositionInLine}
+		);
+		if (hasDiagnosticRelatedInformationCapability && e !== undefined)
+			diagnostic.addRelated(e.message);
 		diagnostics.push(diagnostic);
 	}
 }
@@ -175,26 +163,12 @@ class LexerErrorListener implements ANTLRErrorListener<number> {
 class ParseErrorListener implements ParserErrorListener {
 	syntaxError<T extends Token>(recognizer: Recognizer<T, any>, offendingSymbol: T | undefined, line: number, charPositionInLine: number, msg: string, e: RecognitionException | undefined): void {
 		line = line-1;
-		const diagnostic: Diagnostic = {
-			severity: DiagnosticSeverity.Error,
-			range: {
-				start: { line, character: charPositionInLine },
-				end: { line, character: charPositionInLine + (offendingSymbol?.text?.length || 0) }
-			},
-			message: msg,
-			source: 'ex'
-		};
-		if (hasDiagnosticRelatedInformationCapability && e !== undefined) {
-			diagnostic.relatedInformation = [
-				{
-					location: {
-						uri: "",
-						range: Object.assign({}, diagnostic.range)
-					},
-					message: e.message
-				}
-			];
-		}
+		const diagnostic = Diagnostics.error(msg, 
+			{ line, character: charPositionInLine }, 
+			{ line, character: charPositionInLine + (offendingSymbol?.text?.length || 0) }
+		);
+		if (hasDiagnosticRelatedInformationCapability && e !== undefined)
+			diagnostic.addRelated(e.message);
 		diagnostics.push(diagnostic);
 	}
 }
@@ -212,37 +186,27 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	lexer.addErrorListener(new LexerErrorListener());
 	let tokenStream = new CommonTokenStream(lexer);
 	let parser = new shalldnParser(tokenStream);
+	// if (debug) {
+	// 	parser.removeErrorListeners();
+	// 	parser.addErrorListener(new DiagnosticErrorListener());
+	// }
 	parser.addErrorListener(new ParseErrorListener());
 	let dctx = parser.document();
 
 	let problems = 0;
-	const doc = new ShalldnDoc();
-	let listener = new ShalldnDocumentBuilder(doc);
+	const doc = new ShalldnDoc(textDocument);
+	let listener = new ShalldnDocumentBuilder(doc, parser);
 	ParseTreeWalker.DEFAULT.walk(listener as ParseTreeListener, dctx);
-	if ((doc.subject||null) == null) {
-		const diagnostic: Diagnostic = {
-			severity: DiagnosticSeverity.Error,
-			range: {
-				start: textDocument.positionAt(0),
-				end: textDocument.positionAt(0)
-			},
-			message: `No subject defined in the document.`,
-			source: 'ex'
-		};
-		if (hasDiagnosticRelatedInformationCapability) {
-			diagnostic.relatedInformation = [
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range)
-					},
-					message: 'The subject of the document is defined by the only italicized group of words in the first line of the document'
-				},
-			];
-		}
-		diagnostics.push(diagnostic);
-	}
+	//$$ Parser.ERR_No_DOC_Subject
+	if ((doc.subject||null) == null)
+		diagnostics.push(
+			Diagnostics.error(`No subject defined in the document.`, textDocument.positionAt(0))
+			.addRelated('The subject of the document is defined by the only italicized group of words in the first line of the document')
+		);
 
+	for (const rq of doc.requirements) {
+
+	}
 	diagnostics.forEach(d => {
 		if (d.relatedInformation)
 			d.relatedInformation.forEach(r => {
