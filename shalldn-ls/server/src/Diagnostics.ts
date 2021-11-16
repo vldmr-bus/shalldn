@@ -21,10 +21,15 @@ export namespace Diagnostics {
 			return this;
 		}
 	}
+	
+	export function errorAtRange(message: string, range:Range) {
+		return new ShalldnDiagnostic(DiagnosticSeverity.Error, range, message);
+	}
+
 	export function error(message: string, start: Position, end?: Position): ShalldnDiagnostic {
 		if (end === undefined)
 			end = start;
-		return new ShalldnDiagnostic(DiagnosticSeverity.Error, {start, end}, message);
+		return errorAtRange(message, {start, end});
 	}
 	export function warning(message: string, start: Position, end?: Position): ShalldnDiagnostic {
 		if (end === undefined)

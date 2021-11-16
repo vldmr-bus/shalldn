@@ -18,4 +18,7 @@ export default class ShalldnRequirement {
 			end:Util.startOfToken(ctx.SHALL()._symbol)
 		}
 	}
+	public get pre():string {
+		return this.doc.textat(this.preRange);
+	}
 }

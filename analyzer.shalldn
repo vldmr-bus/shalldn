@@ -1,0 +1,40 @@
+# The Shalldn *analyzer* requirements
+* Implements the **Shalldn analyzer**
+
+## Definitions
+
+### Character position
+An address of a character in the file consisting of a number in the file of the line with the character and a sequential number of the character in the line with the first line and the first character having number 0.
+
+### Text range address
+An address of a contiguous fragment of text consisting of character positions of the the starting  and ending character of the fragment.
+
+### Text reference
+Address of a text fragment in a project file consisting of the file path relative to the project root and the text address range of the fragment.
+
+### Implementation link
+Either:
+* group implementation link
+* individual implementation link
+* inline comment implementation link
+
+
+## Requirements
+
+**Analyzer.PROJECT**
+Within a root directory of a project the analyzer **shall** analyze all the files with the name extension ".shalldn" as *requirement file* *(n.b.)* and all the files with other configured extensions as *non-requirement file* *(n.b.)*.
+
+**Analyzer.GITIGNORE**
+The analyzer **shall** exclude from analyzing any file matching the selection rules in ".gitignore" file in the project root folder as specified in [git documentation](https://git-scm.com/docs/gitignore).
+
+**Analyzer.RQS**
+For each identifier of a requirement defined in project the analyzer **shall** produce a list including a text reference to every requirement definition.
+
+**Analyzer.CMNT_IMPLMNT_LNK**
+In each non-requirement file included in a project the analyzer **shall** recognize a text fragment ending the line that starts with a word '$$Implements' followed by an identifier.
+
+**Analyzer.IMPLNT**
+For each identifier of a requirement defined in project the project the analyzer **shall** produce a list including a text reference to every implementation link with the identifier of the requirement.
+
+**Analyzer.IMPLMNT_TGT**
+For each implementation link in the project the analyzer **shall** produce a list containing a text references to every requirement definition in the project with the identifier of the link.

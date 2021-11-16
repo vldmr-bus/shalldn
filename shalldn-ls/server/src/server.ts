@@ -145,6 +145,7 @@ import ShalldnDocumentBuilder from './ShalldnDocumentBuilder';
 import { ParseTreeListener } from 'antlr4ts/tree/ParseTreeListener';
 import ShalldnDoc from './model/ShalldnDoc';
 import { Diagnostics } from './Diagnostics';
+import { Util } from './util';
 
 let diagnostics: Diagnostic[] = [];
 
@@ -197,15 +198,21 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	const doc = new ShalldnDoc(textDocument);
 	let listener = new ShalldnDocumentBuilder(doc, parser);
 	ParseTreeWalker.DEFAULT.walk(listener as ParseTreeListener, dctx);
-	//$$ Parser.ERR_No_DOC_Subject
+	//$$Implements Parser.ERR_No_DOC_Subject
 	if ((doc.subject||null) == null)
 		diagnostics.push(
 			Diagnostics.error(`No subject defined in the document.`, textDocument.positionAt(0))
 			.addRelated('The subject of the document is defined by the only italicized group of words in the first line of the document')
 		);
 
-	for (const rq of doc.requirements) {
-
+	
+	for (const rq of doc.requirements) { 
+		//$$Implements Parser.ERR_NO_SUBJ
+		if (doc.subject && !rq.pre.trim().endsWith(doc.subject))
+			diagnostics.push(
+				Diagnostics.errorAtRange(`The requirement subject is different from the document subject ${doc.subject}.`, rq.preRange)
+				.addRelated('The subject of the document is defined by the only italicized group of words in the first line of the document')
+			);
 	}
 	diagnostics.forEach(d => {
 		if (d.relatedInformation)

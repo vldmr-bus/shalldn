@@ -10,9 +10,9 @@ export namespace Util {
 		}
 	}
 	export function startOfContext(ctx: ParserRuleContext): Position {
-		return { line: ctx.start.line, character: ctx.start.charPositionInLine };
+		return { line: ctx.start.line-1, character: ctx.start.charPositionInLine };
 	}
 	export function startOfToken(t: Token): Position {
-		return { line: t.line, character: t.charPositionInLine };
+		return { line: t.line-1, character: t.charPositionInLine };
 	}
 }

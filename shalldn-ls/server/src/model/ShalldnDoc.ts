@@ -20,7 +20,7 @@ export default class ShalldnDoc {
 
 	public addRequirement(ctx: RequirementContext) {
 		let rq = new ShalldnRequirement(this, ctx)
-		// $$ Parser.ERR_DUP_RQ_ID
+		// $$Implements Parser.ERR_DUP_RQ_ID
 		if (this.rqmap.has(rq.id))
 			throw `Requirement with id ${rq.id} already exists`;
 		this.rqmap.set(rq.id,rq);
@@ -31,7 +31,8 @@ export default class ShalldnDoc {
 	}
 
 	public get subject() {
-		return this.title && this.title._subject.text || null;
+		let title = this.title && this.title?._subject?.text;
+		return title && title.replace(/^\*+|\*+$/gm, '') || null;
 	}
 
 	public textat(r: Range):string {

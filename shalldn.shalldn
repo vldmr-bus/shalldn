@@ -7,10 +7,10 @@ The Shalldn parser interprets a text file and recognizes requirement definitions
 
 
 ## The *Shalldn analyzer*
-The Shalldn analyzer uses the Shalldn parser to process collection of text files named with extension ".shalldn" and located under the same root directory as a unified project. The tool establishes relations between requirements in the projects and produces reports of traceability and coverage through all the levels of design hierarchy.
+The Shalldn analyzer uses the Shalldn parser to process collection of text files and located under the same root directory as a project. The tool establishes relations between requirements in the projects and produces reports of traceability and coverage through all the levels of design hierarchy.
 
 ## The *Shalldn editor*
-The Shalldn editor is the Visual Studio Code language server for Shalldn language that provides IntelliSense features aiding in editing ".shalldn" files such as syntax highlight, problems indicators, navigation to definitions and dependencies.
+The Shalldn editor is the Visual Studio Code language server for Shalldn language that provides IntelliSense features aiding in editing ".shalldn" files such as syntax highlight, problems indicators, navigation to definitions and dependencies. The editor uses Shalldn parser and Shalldn analyzer as a source of data.
 
 ## The *Shalldn implementor*
 The Shalldn implementor is a tool that creates and helps in maintaining a project (collection of files in programming, hardware or other formal language) that implements a set of Shalldn requirements. The tool can produce traceability and coverage reports for implementing projects and can automatically fix gaps in implementation by creating new component stubs or updating existing project files.

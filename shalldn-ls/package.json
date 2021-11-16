@@ -21,7 +21,8 @@
 		"vscode": "^1.43.0"
 	},
 	"activationEvents": [
-		"onLanguage:shalldn"
+		"onLanguage:shalldn",
+		"onLanguage:markdown"
 	],
 	"main": "./client/out/extension",
 	"contributes": {

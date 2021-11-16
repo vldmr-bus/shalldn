@@ -25,10 +25,10 @@ The parser **shall** indicate error condition when a sentence recognized as a re
 
 ## Justification of requirements
 **Parser.IMPLMNT_GRP**  
-The parser **shall** recognize a phrase as a *group implementation link* *(n.b.)* when the phrase starts with the word "Implements", contain a single bolded group of words and is an item of an unordered list that immediately follows a heading.
+The parser **shall** recognize an unordered list item as a *group implementation link* *(n.b.)* when the item belongs to a list immediately following a title or heading and its text is the word "Implements" immediately followed by an identifier.
 
-**Parser.IMPLMNT_IND**  
-The parser **shall** recognize a phrase as an *individual implementation link* *(n.b.)* when the phrase starts with the word "Implements" and is an item of an unordered list that immediately follows a requirement.
+**Parser.IMPLMNT_INDVDL**  
+The parser **shall** recognize an unordered list item as an *individual implementation link* *(n.b.)* when the item belongs to a list immediately following a requirement and its text is the word "Implements" immediately followed by an identifier.
 
 **Parser.RTNL**  
 The parser **shall** recognize a text fragment as a *rationale clause* *(n.b.)* for a requirement when the fragment is indented under an unordered list item that starts with the word "Rationale" and is a part of an unordered list immediately following the requirement.
@@ -36,7 +36,7 @@ The parser **shall** recognize a text fragment as a *rationale clause* *(n.b.)* 
 **Parser.ERR_NO_JSTFCTN**  
 The parser **shall** indicate error condition when a requirement that is not within a section with a group implementation link and is not followed by unordered list that includes either individual implementation link or rationale clause.
 
-**Parser.ERR_NO_JSTFCTN**  
+**Parser.WARN_RTNL**  
 The parser **shall** indicate warning condition when a requirement that is not within a section with a group implementation link and is not followed by unordered list that includes rationale clause but not an individual implementation link.
 
 ## Inline definitions
