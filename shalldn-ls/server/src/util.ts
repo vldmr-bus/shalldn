@@ -15,4 +15,16 @@ export namespace Util {
 	export function startOfToken(t: Token): Position {
 		return { line: t.line-1, character: t.charPositionInLine };
 	}
+	export function lineRangeOfPos(p: Position):Range {
+		return {
+			start:{
+				line:p.line,
+				character:0
+			},
+			end: {
+				line:p.line,
+				character:Number.MAX_SAFE_INTEGER
+			}
+		}
+	}
 }

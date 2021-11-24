@@ -3,23 +3,25 @@ grammar shalldn;
 WHITESPACE : (' ' |'\t'|'\r')+? -> skip;
 fragment WORD_CHAR: [a-zA-Z_0-9];
 fragment CAPITAL_CHAR: [A-Z];
-WORD: WORD_CHAR+;
 
 
-PUNCTUATION: ','|'_'|'-'|':'|'('|')'|'['|']'|'/';
 STAR: '*';
 MINUS: '-';
 UL: '_';
+COMMA: ',';
 HASH: '#';
+SEMI:';';
 QUOTED_FRAGMENT: '"' .+? '"'|'\'' .+? '\'';
 IDENTIFIER : WORD ('.' WORD)+ ; // *(see identifier)*
-SENTENCE_STOP: '.'|';'|'!';
+WORD: WORD_CHAR+;
 SHALL: (STAR STAR 'shall' STAR STAR| UL UL 'shall' UL UL) ;
 NB: '*(n.b.)*';
-BOLDED_ID: (STAR STAR IDENTIFIER STAR STAR | UL UL IDENTIFIER UL UL) ;
 URL: [hH][tT][tT][pP][sS]? '://' [a-zA-Z0-9._\-]+ ;
 
-plain_phrase:(WORD | QUOTED_FRAGMENT | PUNCTUATION | URL)+;
+bolded_id: (STAR STAR IDENTIFIER STAR STAR | UL UL IDENTIFIER UL UL) ;
+sentence_stop: '.'|';'|'!';
+punctuation: ','|'_'|'-'|':'|'('|')'|'['|']'|'/';
+plain_phrase:( WORD|IDENTIFIER | QUOTED_FRAGMENT | punctuation | URL)+;
 italiced_phrase: (STAR plain_phrase STAR|HASH plain_phrase HASH);
 nota_bene: italiced_phrase NB;
 bolded_phrase: (STAR STAR plain_phrase STAR STAR|HASH HASH plain_phrase HASH HASH);
@@ -30,10 +32,11 @@ phrase: plain_phrase|italiced_phrase|bolded_phrase|nota_bene|def_drct|def_rev;
 // $$Implements Parser.DOC_Subject
 title: '#' phrase* subject = italiced_phrase WORD* ~'\n'? ;
 heading: '\n'*HASH+ phrase+ '\n';
-implmnt_ind: '\n'+(STAR)+'Implements' plain_phrase? id = bolded_phrase plain_phrase?  SENTENCE_STOP? ;
-ul_element: '\n'+(STAR)+ phrase SENTENCE_STOP? ;
-ul: (ul_element|implmnt_ind)+;
+// $$Implements Parser.IMPLMNT
+implmnt: '\n'+(STAR)+'Implements' ((bolded_id (',' bolded_id)*) |bolded_phrase) sentence_stop? ;
+ul_element: '\n'+(STAR)+ phrase sentence_stop? ;
+ul: (ul_element|implmnt)+;
 // $$Implements Parser.RQ_statement Parser.ERR_No_RQ_ID
-requirement: BOLDED_ID '\n'* pre = phrase+ SHALL post = phrase+ '.''\n';
+requirement: bolded_id '\n'* pre = phrase+ SHALL post = phrase+ '.''\n';
 sentence: phrase+ ('.'|ul);
 document: title (heading|requirement|sentence|ul|'\n'+)+ EOF;

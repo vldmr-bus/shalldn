@@ -1,10 +1,5 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Vladimir Avdonin. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-
 import * as path from 'path';
-import { workspace, ExtensionContext } from 'vscode';
+import { workspace, ExtensionContext, StatusBarItem, StatusBarAlignment, window } from 'vscode';
 
 import {
 	LanguageClient,
@@ -14,9 +9,15 @@ import {
 } from 'vscode-languageclient/node';
 
 let client: LanguageClient;
+let statusBarItem: StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left);;
+
+function showIndexingStatusBarMessage() {
+	statusBarItem.text = "$(zap) Shalldn indexing...";
+	statusBarItem.tooltip = "Shalldn language server is analyzing files in the workspace";
+	statusBarItem.show();
+}
 
 export function activate(context: ExtensionContext) {
-	// The server is implemented in node
 	const serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')
 	);
@@ -58,6 +59,23 @@ export function activate(context: ExtensionContext) {
 
 	// Start the client. This will also launch the server
 	client.start();
+
+	let files = {
+		include: ['shalldn','ts','cs'],
+		exclude: []
+	}
+	workspace.findFiles(`**/*.{${files.include.join(',')}}`).then(files => {
+		var filePaths: string[] = [];
+		files.forEach(file => {
+			filePaths.push(file.toString());
+		});
+
+		client.onReady().then(() => {
+			client.sendRequest("analyzeFiles", {
+				files: filePaths,
+			});
+		});
+	});
 }
 
 export function deactivate(): Thenable<void> | undefined {

@@ -4,22 +4,22 @@ import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
 import { RequirementContext, TitleContext } from '../antlr/shalldnParser';
-import ShalldnRequirement from './ShalldnRequirement';
+import ShalldnRq from './ShalldnRq';
 
 export default class ShalldnDoc {
 	private title: TitleContext = null as any;
 	//private requirements:{[key:string]:ShalldnRequirement}={};
-	private rqmap = new Map<string, ShalldnRequirement>();
+	private rqmap = new Map<string, ShalldnRq>();
 	constructor (
 		private textDocument: TextDocument
 	) {}
 
-	public get requirements(): IterableIterator<ShalldnRequirement> {
+	public get requirements(): IterableIterator<ShalldnRq> {
 		return this.rqmap.values();
 	}
 
 	public addRequirement(ctx: RequirementContext) {
-		let rq = new ShalldnRequirement(this, ctx)
+		let rq = new ShalldnRq(this, ctx)
 		// $$Implements Parser.ERR_DUP_RQ_ID
 		if (this.rqmap.has(rq.id))
 			throw `Requirement with id ${rq.id} already exists`;

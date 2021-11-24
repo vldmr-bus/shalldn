@@ -14,7 +14,8 @@ import {
 	CompletionItemKind,
 	TextDocumentPositionParams,
 	TextDocumentSyncKind,
-	InitializeResult
+	InitializeResult,
+	RequestType
 } from 'vscode-languageserver/node';
 
 import {
@@ -23,6 +24,8 @@ import {
 
 import { ANTLRErrorListener, CharStreams, CommonTokenStream, RecognitionException, Recognizer, ParserErrorListener, Token, DiagnosticErrorListener } from 'antlr4ts';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
+
+import {from, mergeMap} from 'rxjs';
 
 var debug = /--inspect/.test(process.execArgv.join(' '))
 
@@ -33,22 +36,28 @@ const connection = createConnection(ProposedFeatures.all);
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-let hasConfigurationCapability = false;
-let hasWorkspaceFolderCapability = false;
-let hasDiagnosticRelatedInformationCapability = false;
+export class Capabilities {
+	public Config = false
+	public WorkspaceFolder = false
+	public DiagnRelated = false
+}
+
+let cpblts = new Capabilities();
+
+let project: ShalldnProj;
 
 connection.onInitialize((params: InitializeParams) => {
 	const capabilities = params.capabilities;
 
 	// Does the client support the `workspace/configuration` request?
 	// If not, we fall back using global settings.
-	hasConfigurationCapability = !!(
+	cpblts.Config = !!(
 		capabilities.workspace && !!capabilities.workspace.configuration
 	);
-	hasWorkspaceFolderCapability = !!(
+	cpblts.WorkspaceFolder = !!(
 		capabilities.workspace && !!capabilities.workspace.workspaceFolders
 	);
-	hasDiagnosticRelatedInformationCapability = !!(
+	cpblts.DiagnRelated = !!(
 		capabilities.textDocument &&
 		capabilities.textDocument.publishDiagnostics &&
 		capabilities.textDocument.publishDiagnostics.relatedInformation
@@ -57,28 +66,28 @@ connection.onInitialize((params: InitializeParams) => {
 	const result: InitializeResult = {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
-			// Tell the client that this server supports code completion.
-			completionProvider: {
-				resolveProvider: true
-			}
+			definitionProvider: true,
+			referencesProvider: true
 		}
 	};
-	if (hasWorkspaceFolderCapability) {
+	if (cpblts.WorkspaceFolder) {
 		result.capabilities.workspace = {
 			workspaceFolders: {
 				supported: true
 			}
 		};
 	}
+	project = new ShalldnProj(connection, cpblts);
+
 	return result;
 });
 
 connection.onInitialized(() => {
-	if (hasConfigurationCapability) {
+	if (cpblts.Config) {
 		// Register for all configuration changes.
 		connection.client.register(DidChangeConfigurationNotification.type, undefined);
 	}
-	if (hasWorkspaceFolderCapability) {
+	if (cpblts.WorkspaceFolder) {
 		connection.workspace.onDidChangeWorkspaceFolders(_event => {
 			connection.console.log('Workspace folder change event received.');
 		});
@@ -86,25 +95,29 @@ connection.onInitialized(() => {
 });
 
 // The example settings
-interface ExampleSettings {
+interface ShalldnSettings {
 	maxNumberOfProblems: number;
+	nonRqFileTypes: string;
 }
 
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
 // Please note that this is not the case when using this server with the client provided in this example
 // but could happen with other clients.
-const defaultSettings: ExampleSettings = { maxNumberOfProblems: 1000 };
-let globalSettings: ExampleSettings = defaultSettings;
+const defaultSettings: ShalldnSettings = { 
+	maxNumberOfProblems: 1000,  
+	nonRqFileTypes: '*.{cs,ts}'
+};
+let globalSettings: ShalldnSettings = defaultSettings;
 
 // Cache the settings of all open documents
-const documentSettings: Map<string, Thenable<ExampleSettings>> = new Map();
+const documentSettings: Map<string, Thenable<ShalldnSettings>> = new Map();
 
 connection.onDidChangeConfiguration(change => {
-	if (hasConfigurationCapability) {
+	if (cpblts.Config) {
 		// Reset all cached document settings
 		documentSettings.clear();
 	} else {
-		globalSettings = <ExampleSettings>(
+		globalSettings = <ShalldnSettings>(
 			(change.settings.shalldnLanguageServer || defaultSettings)
 		);
 	}
@@ -113,8 +126,8 @@ connection.onDidChangeConfiguration(change => {
 	documents.all().forEach(validateTextDocument);
 });
 
-function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
-	if (!hasConfigurationCapability) {
+function getDocumentSettings(resource: string): Thenable<ShalldnSettings> {
+	if (!cpblts.Config) {
 		return Promise.resolve(globalSettings);
 	}
 	let result = documentSettings.get(resource);
@@ -146,34 +159,12 @@ import { ParseTreeListener } from 'antlr4ts/tree/ParseTreeListener';
 import ShalldnDoc from './model/ShalldnDoc';
 import { Diagnostics } from './Diagnostics';
 import { Util } from './util';
+import ShalldnProj from './model/ShalldnProj';
+import { Observable } from 'rxjs';
+import LexerErrorListener from './LexerErrorListener';
+import ParseErrorListener from './ParseErrorListener';
 
 let diagnostics: Diagnostic[] = [];
-
-class LexerErrorListener implements ANTLRErrorListener<number> {
-	syntaxError<T>(recognizer: Recognizer<T, any>, offendingSymbol: T|undefined, line: number, charPositionInLine: number, msg: string, e: RecognitionException | undefined): void {
-		const diagnostic = Diagnostics.error(msg,
-			{ line, character: charPositionInLine },
-			{ line, character: charPositionInLine}
-		);
-		if (hasDiagnosticRelatedInformationCapability && e !== undefined)
-			diagnostic.addRelated(e.message);
-		diagnostics.push(diagnostic);
-	}
-}
-
-class ParseErrorListener implements ParserErrorListener {
-	syntaxError<T extends Token>(recognizer: Recognizer<T, any>, offendingSymbol: T | undefined, line: number, charPositionInLine: number, msg: string, e: RecognitionException | undefined): void {
-		line = line-1;
-		const diagnostic = Diagnostics.error(msg, 
-			{ line, character: charPositionInLine }, 
-			{ line, character: charPositionInLine + (offendingSymbol?.text?.length || 0) }
-		);
-		if (hasDiagnosticRelatedInformationCapability && e !== undefined)
-			diagnostic.addRelated(e.message);
-		diagnostics.push(diagnostic);
-	}
-}
-
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	// In this simple example we get the settings for every validate run.
@@ -184,14 +175,14 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
 	let inputStream = CharStreams.fromString(text);
 	let lexer = new shalldnLexer(inputStream);
-	lexer.addErrorListener(new LexerErrorListener());
+	lexer.addErrorListener(new LexerErrorListener(cpblts.DiagnRelated ? textDocument.uri:"", d=>diagnostics.push(d)));
 	let tokenStream = new CommonTokenStream(lexer);
 	let parser = new shalldnParser(tokenStream);
 	// if (debug) {
 	// 	parser.removeErrorListeners();
 	// 	parser.addErrorListener(new DiagnosticErrorListener());
 	// }
-	parser.addErrorListener(new ParseErrorListener());
+	parser.addErrorListener(new ParseErrorListener(cpblts.DiagnRelated ? textDocument.uri:"",d=>diagnostics.push(d)));
 	let dctx = parser.document();
 
 	let problems = 0;
@@ -214,12 +205,6 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 				.addRelated('The subject of the document is defined by the only italicized group of words in the first line of the document')
 			);
 	}
-	diagnostics.forEach(d => {
-		if (d.relatedInformation)
-			d.relatedInformation.forEach(r => {
-				r.location.uri = r.location.uri || textDocument.uri;
-			});
-	});
 
 	// Send the computed diagnostics to VSCode.
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
@@ -230,41 +215,47 @@ connection.onDidChangeWatchedFiles(_change => {
 	connection.console.log('We received an file change event');
 });
 
-// This handler provides the initial list of the completion items.
-connection.onCompletion(
-	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
-		// The pass parameter contains the position of the text document in
-		// which code complete got requested. For the example we ignore this
-		// info and always provide the same completion items.
-		return [
-			{
-				label: 'TypeScript',
-				kind: CompletionItemKind.Text,
-				data: 1
-			},
-			{
-				label: 'JavaScript',
-				kind: CompletionItemKind.Text,
-				data: 2
-			}
-		];
-	}
-);
-
-// This handler resolves additional information for the item selected in
-// the completion list.
-connection.onCompletionResolve(
-	(item: CompletionItem): CompletionItem => {
-		if (item.data === 1) {
-			item.detail = 'TypeScript details';
-			item.documentation = 'TypeScript documentation';
-		} else if (item.data === 2) {
-			item.detail = 'JavaScript details';
-			item.documentation = 'JavaScript documentation';
+connection.onDefinition((params, cancellationToken) => {
+	return new Promise((resolve, reject) => {
+		const document = documents.get(params.textDocument.uri);
+		const p = params.position;
+		let line = document?.getText(Util.lineRangeOfPos(p)).trim();
+		if (!line) {
+			resolve([]);
+			return;
 		}
-		return item;
-	}
-);
+
+		let id = line.substring(0,p.character).replace(/.*?([\w\.]*)$/, '$1')+
+			line.substring(p.character).replace(/^([\w\.]*).*?$/, '$1');
+		resolve(project.findDefinition(id));
+	});
+});
+
+connection.onReferences((params)=>{
+	return new Promise((resolve, reject) => {
+		const document = documents.get(params.textDocument.uri);
+		const p = params.position;
+		let line = document?.getText(Util.lineRangeOfPos(p)).trim();
+		if (!line) {
+			resolve([]);
+			return;
+		}
+
+		let id = line.substring(0,p.character).replace(/.*?([\w\.]*)$/, '$1')+
+			line.substring(p.character).replace(/^([\w\.]*).*?$/, '$1');
+		resolve(project.findReferences(id));
+	});
+
+})
+
+var analyzeFiles: RequestType<{
+	files: string[],
+}, any, any> = new RequestType("analyzeFiles");
+connection.onRequest(analyzeFiles, (data) => {
+	from(data.files)
+	.pipe(mergeMap(url=>project.analyze(url),100))
+	.subscribe();
+});
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events

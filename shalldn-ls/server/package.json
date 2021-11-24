@@ -16,6 +16,7 @@
 		"antlr4ts": "antlr4ts -visitor -o src/antlr ../../shalldn.g4"
 	},
 	"devDependencies": {
+		"@types/node": "^16.11.9",
 		"antlr4ts-cli": "^0.5.0-alpha.4"
 	}
 }
