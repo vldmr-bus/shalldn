@@ -1,4 +1,4 @@
-# Definition of the Shalldn *parser*
+# Definition of the Shalldn parser
 * Implements **Shalldn parser**
 
 ## Requirements
@@ -22,6 +22,10 @@ The parser **shall** indicate error condition when a sentence preceded by a sepa
 
 **Parser.ERR_DUP_SHALL**  
 The parser **shall** indicate error condition when a sentence recognized as a requirement contains multiple words "shall" not included in quotation marks.
+
+## Informal specifications
+**Parser.INFRML_ID**
+The parser **shall** recognize the only italicized group of words in any heading as an identifier of informal requirement.
 
 ## Justification of requirements
 **Parser.IMPLMNT**  

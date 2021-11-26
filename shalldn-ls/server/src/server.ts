@@ -215,18 +215,31 @@ connection.onDidChangeWatchedFiles(_change => {
 	connection.console.log('We received an file change event');
 });
 
+function isRqDoc(doc:TextDocument):boolean {
+	return doc.languageId == 'shalldn' || doc.languageId == 'markdown' && /\.shalldn$/.test(doc.uri);
+}
+
 connection.onDefinition((params, cancellationToken) => {
 	return new Promise((resolve, reject) => {
 		const document = documents.get(params.textDocument.uri);
 		const p = params.position;
 		let line = document?.getText(Util.lineRangeOfPos(p)).trim();
-		if (!line) {
+		if (!document || !line) {
 			resolve([]);
 			return;
 		}
 
 		let id = line.substring(0,p.character).replace(/.*?([\w\.]*)$/, '$1')+
 			line.substring(p.character).replace(/^([\w\.]*).*?$/, '$1');
+		let defs = project.findDefinition(id);
+		if (defs.length > 0 || !isRqDoc(document)) {
+			resolve(defs);
+			return;
+		}
+
+		// informal requirement definition
+		id = line.substring(0, p.character).replace(/^.*Implements\s+\*\*([^*]+)$/, '$1') +
+			line.substring(p.character).replace(/^([^*]*)\*\*\s*?$/, '$1');
 		resolve(project.findDefinition(id));
 	});
 });
@@ -235,14 +248,23 @@ connection.onReferences((params)=>{
 	return new Promise((resolve, reject) => {
 		const document = documents.get(params.textDocument.uri);
 		const p = params.position;
-		let line = document?.getText(Util.lineRangeOfPos(p)).trim();
-		if (!line) {
+		let line = document?.getText(Util.lineRangeOfPos(p)).trim()||'';
+		if (!document || !line) {
 			resolve([]);
 			return;
 		}
 
 		let id = line.substring(0,p.character).replace(/.*?([\w\.]*)$/, '$1')+
 			line.substring(p.character).replace(/^([\w\.]*).*?$/, '$1');
+		let refs = project.findReferences(id);
+		if (refs.length > 0 || !isRqDoc(document)) {
+			resolve(refs);
+			return;
+		}
+
+		// informal requirement references
+		id = line.substring(0, p.character).replace(/^#+.*\*([^*]+)$/, '$1') +
+			line.substring(p.character).replace(/^([^*]*)\*.*$/, '$1');
 		resolve(project.findReferences(id));
 	});
 

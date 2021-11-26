@@ -3,12 +3,12 @@ import ShalldnRqRef from './ShalldnRqRef';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as rx  from 'rxjs';
-import { CharStreams, CommonTokenStream } from 'antlr4ts';
+import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts';
 import { shalldnLexer } from '../antlr/shalldnLexer';
 import { HeadingContext, ImplmntContext, RequirementContext, SentenceContext, shalldnParser, TitleContext, UlContext, Ul_elementContext } from '../antlr/shalldnParser';
 import { shalldnListener } from '../antlr/shalldnListener';
 import { Capabilities } from '../server';
-import { DefinitionParams, Diagnostic, Location, _Connection } from 'vscode-languageserver';
+import { DefinitionParams, Diagnostic, Location, Range, _Connection } from 'vscode-languageserver';
 import ShalldnRqDef from './ShalldnRqDef';
 import { Util } from '../util';
 import LexerErrorListener from '../LexerErrorListener';
@@ -17,6 +17,7 @@ import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
 import { ParseTreeListener } from 'antlr4ts/tree/ParseTreeListener';
 import { Diagnostics } from '../Diagnostics';
 import { URI } from 'vscode-uri';
+import { Interval } from 'antlr4ts/misc/Interval';
 class ShalldnProjectRqAnalyzer implements shalldnListener {
 	constructor(
 		private uri:string,
@@ -29,9 +30,21 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	private lastHeading:HeadingContext | null=null;
 	private headinStack:HeadingContext[]=[];
 
+	getText(ctx: ParserRuleContext|undefined):string {
+		if (!ctx)
+			return '';
+		let a = ctx.start.startIndex;
+		let b = ctx.stop?.stopIndex || ctx.start.stopIndex;
+		let interval = new Interval(a, b);
+		let s = ctx.start.inputStream?.getText(interval)||'';
+		return s;
+	}
+
 	enterRequirement(ctx: RequirementContext) {
 		try {
-			this.proj.addRequirement(this.uri, ctx);
+			let id = ctx.bolded_id()?.IDENTIFIER()?.text || '';
+			let range= Util.rangeOfContext(ctx);
+			this.proj.addRequirement(id,range,this.uri);
 		} catch (e: any) {
 			this.parser.notifyErrorListeners(e, ctx.start, undefined);
 		}
@@ -42,7 +55,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	}
 
 	enterTitle(ctx: TitleContext) {
-		let title = ctx._subject.plain_phrase()?.text||'';
+		let title = this.getText(ctx?._subject?.plain_phrase());
 		this.subject = title;
 	}
 
@@ -61,10 +74,26 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			this.parser.notifyErrorListeners("Implementation link in the list that is not immidiately after requirement or heading", ctx.start, undefined);
 		let ids:string[]=[];
 		if (ctx.bolded_phrase())
-			ids.push(ctx.bolded_phrase()?.plain_phrase()?.text||'');
+			ids.push(this.getText(ctx.bolded_phrase()?.plain_phrase()));
 		else
 			ctx.bolded_id().forEach(id => ids.push(id.IDENTIFIER()?.text||''));
 		this.proj.addRefs(this.uri,ctx, ids);
+	}
+
+	exitHeading(ctx:HeadingContext) {
+		let defs: {id:string,range:Range}[]=[];
+		ctx.phrase().forEach(p=>{
+			let id = p.italiced_phrase()?.plain_phrase();
+			if (!id)
+				return;
+			defs.push({id:this.getText(id),range: Util.rangeOfContext(id)});
+		});
+		if (defs.length>1)
+			this.parser.notifyErrorListeners("Heading shall have a single italicized phrase as an informal requirement identifier", ctx.start, undefined);
+		if (defs.length==1) {
+			let def = defs[0];
+			this.proj.addRequirement(def.id,def.range,this.uri);
+		}
 	}
 }
 
@@ -90,16 +119,11 @@ export default class ShalldnProj {
 			return this.analyzeNonRqFile(uri);
 	}
 
-	public addRequirement(uri: string, ctx: RequirementContext) {
+	public addRequirement(id:string, range:Range, uri: string) {
 		let fileData= this.Files.get(uri);
-		let id = ctx.bolded_id()?.IDENTIFIER()?.text || '';
 		if (!id)
 			throw `Requirement without identifier`;
-		let def: ShalldnRqDef = {
-			uri: uri,
-			id,
-			range: Util.rangeOfContext(ctx)
-		}
+		let def: ShalldnRqDef = {uri,id,range};
 		fileData?.RqDefs.push(def);
 		let defs = this.RqDefs.get(def.id);
 		if (!defs) {
@@ -212,9 +236,7 @@ export default class ShalldnProj {
 		});
 	}
 
-	public findDefinition(id:string): Location | Location[] {
-		var results: Location[] = [];
-
+	public findDefinition(id:string): Location[] {
 		let defs = this.RqDefs.get(id)||[];
 		return defs.map(def => <Location>{
 			uri: def.uri,
@@ -223,8 +245,6 @@ export default class ShalldnProj {
 	}
 
 	public findReferences(id: string): Location[] {
-		var results: Location[] = [];
-
 		let defs = this.RqRefs.get(id) || [];
 		return defs.map(def => <Location>{
 			uri: def.uri,
