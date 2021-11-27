@@ -65,14 +65,14 @@ export function activate(context: ExtensionContext) {
 		exclude: []
 	}
 	workspace.findFiles(`**/*.{${files.include.join(',')}}`).then(files => {
-		var filePaths: string[] = [];
+		var uris: string[] = [];
 		files.forEach(file => {
-			filePaths.push(file.toString());
+			uris.push(file.toString());
 		});
 
 		client.onReady().then(() => {
 			client.sendRequest("analyzeFiles", {
-				files: filePaths,
+				files: uris,
 			});
 		});
 	});

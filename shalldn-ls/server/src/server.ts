@@ -224,27 +224,36 @@ connection.onReferences((params)=>{
 
 })
 
-var analyzeFiles: RequestType<{
-	files: string[],
-}, any, any> = new RequestType("analyzeFiles");
-connection.onRequest(analyzeFiles, (data) => {
-	from(data.files)
+function analyzeFiles(files: string[]) {
+	return from(files)
 	.pipe(
-		mergeMap(uri=>{
+		mergeMap(uri => {
 			let path = URI.parse(uri).fsPath;
 			return fs.readFile(path, 'utf8')
 				.then(
-					text => project.analyze(uri,text),
-					reason => connection.sendDiagnostics({ 
-						uri: uri, 
+					text => project.analyze(uri, text),
+					reason => connection.sendDiagnostics({
+						uri: uri,
 						diagnostics: [Diagnostics.error(reason.message, { line: 0, character: 0 })]
 					})
 				)
-			}, 
+		},
 			100
 		)
-	)
-	.subscribe();
+	);
+}
+
+var analyzeFilesRequest: RequestType<{
+	files: string[],
+}, any, any> = new RequestType("analyzeFiles");
+connection.onRequest(analyzeFilesRequest, (data) => {
+	analyzeFiles(data.files)
+	.subscribe({
+		complete() {
+			analyzeFiles(data.files.filter(p=>/.*\.shalldn$/.test(p)))
+			.subscribe();
+		}
+	});
 });
 
 // Make the text document manager listen on the connection

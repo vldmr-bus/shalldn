@@ -26,10 +26,12 @@ export namespace Diagnostics {
 		return new ShalldnDiagnostic(DiagnosticSeverity.Error, range, message);
 	}
 
-	export function error(message: string, start: Position, end?: Position): ShalldnDiagnostic {
+	export function error(message: string, start: Position|Range, end?: Position): ShalldnDiagnostic {
+		if ((<Range>start).end !== undefined)
+			return errorAtRange(message, <Range>start);
 		if (end === undefined)
-			end = start;
-		return errorAtRange(message, {start, end});
+			end = <Position>start;
+		return errorAtRange(message, {start:<Position>start, end});
 	}
 	export function warning(message: string, start: Position, end?: Position): ShalldnDiagnostic {
 		if (end === undefined)

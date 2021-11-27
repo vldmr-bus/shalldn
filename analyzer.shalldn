@@ -36,3 +36,5 @@ In each non-requirement file included in a project the analyzer **shall** recogn
 **Analyzer.IMPLNT**
 For each identifier of a requirement defined in the project the analyzer **shall** produce a list of text references to every implementation link with the identifier.
 
+**Analyzer.ERR_NOIMPL**
+The analyzer **shall** indicate an error condition for every requirement that does not have any implementation links in the project.
