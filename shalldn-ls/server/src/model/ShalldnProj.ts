@@ -144,6 +144,7 @@ export default class ShalldnProj {
 			defs=[];
 			this.RqDefs.set(def.id,defs)
 		}
+		// $$Implements Parser.ERR_DUP_RQ_ID, Analyzer.ERR_DUP_RQ_ID
 		let multiple = defs.length>0;
 		defs.push(def);
 		if (multiple) 
@@ -186,16 +187,45 @@ export default class ShalldnProj {
 		});
 	}
 
+	public remove(uri:string) {
+		let fileData = this.Files.get(uri);
+		if (!fileData)
+			return;
+		this.cleanFileData(fileData);
+		this.Files.delete(uri);
+	}
+
 	// $$Implements Analyzer.ERR_NOIMPL_TGT
 	checkRefsTargets(fileData:FileData, diagnostics:Diagnostic[]) {
 		fileData.RqRefs.forEach(ref => {
 			let defs = this.RqDefs.get(ref.id);
-			if (!defs) {
+			if (!defs || defs.length==0) {
 				diagnostics.push(
 					Diagnostics.error(`Implementation of non-exisiting requirement ${ref.id} `, ref.range)
 				);
 			}
 		});
+	}
+
+	public getLinked(uri:string): Set<string> {
+		let linked = new Set<string>();
+
+		let fileData = this.Files.get(uri);
+		if (!fileData)
+			return linked;
+		
+		fileData.RqDefs.forEach(def=>{
+			let refs = this.RqRefs.get(def.id);
+			if (refs)
+				refs.forEach(ref=>linked.add(ref.uri));
+		});
+		fileData.RqRefs.forEach(ref => {
+			let defs = this.RqDefs.get(ref.id);
+			if (defs)
+				defs.forEach(def => linked.add(def.uri));
+		});
+
+		return linked;
 	}
 
 	public analyze(uri: string, text:string) {
@@ -233,7 +263,7 @@ export default class ShalldnProj {
 			// $$Implements Analyzer.ERR_NOIMPL
 			fileData.RqDefs.forEach(def => {
 				let refs = this.RqRefs.get(def.id);
-				if (!refs){
+				if (!refs || refs.length==0){
 					analyzer.diagnostics.push(
 						Diagnostics.error(`Requirement ${def.id} does not have implementation`, def.idRange)
 					);

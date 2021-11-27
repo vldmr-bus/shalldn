@@ -3,7 +3,7 @@
 
 ## Requirements
 **Parser.RQ_statement**  
-The parser **shall** recognize a sentence as a requirement if the sentence is preceded by a *separately bolded* *(i.e. surrounded by bold markdown immediately on both sides)* *identifier* *(a contiguous group of alphanumeric, '_' and '.' characters)* and includes the document subject followed by separately bolded word "shall".
+The parser **shall** recognize a sentence as a requirement if the sentence is preceded by a *separately bolded* *(i.e. surrounded by bold markdown immediately on both sides)* *identifier* *(a contiguous group of alphanumeric, '_' and '.' characters)* and includes the document subject followed by separately bolded word "shall". 
 
 **Parser.DOC_Subject**  
 The parser **shall** use the only italicized group of words in the first line of the document file as the document subject.
@@ -21,7 +21,7 @@ The parser **shall** indicate error condition when the same separately bolded id
 The parser **shall** indicate error condition when a sentence preceded by a separately bolded identifier contains a separately bolded word "shall" that is not following the document subject.
 
 **Parser.ERR_DUP_SHALL**  
-The parser **shall** indicate error condition when a sentence recognized as a requirement contains multiple words "shall" not included in quotation marks.
+The parser **shall** indicate error condition when a sentence recognized as a requirement contains multiple separately bolded word "shall" not included in quotation marks.
 
 ## Informal specifications
 **Parser.INFRML_ID**

@@ -15,7 +15,8 @@ import {
 	TextDocumentPositionParams,
 	TextDocumentSyncKind,
 	InitializeResult,
-	RequestType
+	RequestType,
+	FileChangeType
 } from 'vscode-languageserver/node';
 
 import {
@@ -149,10 +150,13 @@ documents.onDidClose(e => {
 	documentSettings.delete(e.document.uri);
 });
 
-// The content of a text document has changed. This event is emitted
-// when the text document first opened or when its content has changed.
-documents.onDidChangeContent(change => {
-	validateTextDocument(change.document);
+// $$Implements Analyzer.MODS
+documents.onDidChangeContent(async change => {
+	let linked = project.getLinked(change.document.uri);
+	await validateTextDocument(change.document);
+	for (let l of project.getLinked(change.document.uri))
+		linked.add(l);
+	analyzeFiles([...linked]).subscribe();
 });
 
 
@@ -164,7 +168,30 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	project.analyze(textDocument.uri,text);
 }
 
+// $$Implements Analyzer.MODS
 connection.onDidChangeWatchedFiles(_change => {
+	let changed:string[] = [];
+	_change.changes.forEach(event=>{
+		if (event.type == FileChangeType.Created)
+			return;
+		if (event.type = FileChangeType.Deleted)
+			project.remove(event.uri);
+		if (event.type = FileChangeType.Changed) {
+			changed.push(event.uri);
+		}
+	})
+	
+	if (changed.length == 0)
+		return;
+	let linked = new Set<string>();
+	changed.forEach(uri => { linked = new Set([...linked, ...project.getLinked(uri)]);})
+	analyzeFiles(changed).subscribe({
+		complete() {
+			changed.forEach(uri => { linked = new Set([...linked, ...project.getLinked(uri)]); })
+			analyzeFiles([...linked]).subscribe();
+		}
+	})
+
 	// Monitored files have change in VSCode
 	connection.console.log('We received an file change event');
 });
