@@ -42,6 +42,7 @@ export function activate(context: ExtensionContext) {
 		documentSelector: [
 			{ scheme: 'file', language: 'markdown', pattern: '**/*.shalldn' },
 			{ scheme: 'file', language: 'shalldn' },
+			{ scheme: 'file'},
 		],
 		synchronize: {
 			// Notify the server about file changes to '.clientrc files contained in the workspace

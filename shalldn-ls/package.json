@@ -6,7 +6,7 @@
 	"version": "0.0.1",
 	"repository": {
 		"type": "git",
-		"url": ""
+		"url": "https://github.com/vldmr-bus/shalldn"
 	},
 	"publisher": "Vladimir Avdonin",
 	"categories": [
@@ -21,8 +21,7 @@
 		"vscode": "^1.43.0"
 	},
 	"activationEvents": [
-		"onLanguage:shalldn",
-		"onLanguage:markdown"
+		"*"
 	],
 	"main": "./client/out/extension",
 	"contributes": {

@@ -14,7 +14,7 @@ The editor **shall** indicate an error for every requirement that does not have 
 The editor **shall** allow switching on and off mode for hiding errors for requirements without implementation.
 
 **Editor.ERR_NO_IMPLMNT_TGT**
-The editor **shall** indicate an error problem for every implementation link for which the Shalldn analyzer return an empty list of requirement definitions with the identifier of the link.
+The editor **shall** indicate an error for every implementation clause for which the Shalldn analyzer returns an empty list of requirement definitions with the identifier from the clause.
 
 **Editor.CFG_PRJ_FTYPES**
 The editor **shall** allow configuring a set of file name extensions to select a non-requirement files included in project.

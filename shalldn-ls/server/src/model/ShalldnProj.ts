@@ -167,6 +167,37 @@ export default class ShalldnProj {
 		});
 	}
 
+	cleanFileData(fileData:FileData|undefined) {
+		if (!fileData)
+			return;
+		fileData.RqDefs.forEach(def => {
+			let defs = this.RqDefs.get(def.id);
+			if (!defs)
+				return;
+			let newdefs = defs.filter(d => d.uri != def.uri);
+			this.RqDefs.set(def.id, newdefs);
+		});
+		fileData.RqRefs.forEach(ref => {
+			let refs = this.RqRefs.get(ref.id);
+			if (!refs)
+				return;
+			let newrefs = refs.filter(d => d.uri != ref.uri);
+			this.RqRefs.set(ref.id, newrefs);
+		});
+	}
+
+	// $$Implements Analyzer.ERR_NOIMPL_TGT
+	checkRefsTargets(fileData:FileData, diagnostics:Diagnostic[]) {
+		fileData.RqRefs.forEach(ref => {
+			let defs = this.RqDefs.get(ref.id);
+			if (!defs) {
+				diagnostics.push(
+					Diagnostics.error(`Implementation of non-exisiting requirement ${ref.id} `, ref.range)
+				);
+			}
+		});
+	}
+
 	public analyze(uri: string, text:string) {
 		if (path.extname(uri).toLowerCase() == '.shalldn')
 			return this.analyzeRqFile(uri,text);
@@ -177,26 +208,11 @@ export default class ShalldnProj {
 	analyzeRqFile(uri:string, text:string) {
 		let fileData = this.Files.get(uri);
 		let firstPass = !fileData;
-		if (fileData) {
-			fileData.RqDefs.forEach(def => {
-				let defs = this.RqDefs.get(def.id);
-				if (!defs)
-					return;
-				let newdefs = defs.filter(d => d.uri!=def.uri);
-				this.RqDefs.set(def.id,newdefs);
-			});
-			fileData.RqRefs.forEach(ref => {
-				let refs = this.RqRefs.get(ref.id);
-				if (!refs)
-					return;
-				let newrefs = refs.filter(d => d.uri != ref.uri);
-				this.RqRefs.set(ref.id, newrefs);
-			});
-		}
-
-		let analyzer = new ShalldnProjectRqAnalyzer(uri, this);
+		this.cleanFileData(fileData);
 		fileData = new FileData();
 		this.Files.set(uri,fileData);
+
+		let analyzer = new ShalldnProjectRqAnalyzer(uri, this);
 		let inputStream = CharStreams.fromString(text);
 		let lexer = new shalldnLexer(inputStream);
 		lexer.addErrorListener(new LexerErrorListener(this.cpblts.DiagnRelated ? uri : "", d => analyzer.diagnostics.push(d)));
@@ -213,24 +229,31 @@ export default class ShalldnProj {
 					.addRelated('The subject of the document is defined by the only italicized group of words in the first line of the document')
 			);
 
-		// $$Implements Analyzer.ERR_NOIMPL
 		if (!firstPass) {
+			// $$Implements Analyzer.ERR_NOIMPL
 			fileData.RqDefs.forEach(def => {
 				let refs = this.RqRefs.get(def.id);
 				if (!refs){
 					analyzer.diagnostics.push(
-						Diagnostics.error(`Requirement ${def.id} does not have implementation`, def.idRange.start, def.idRange.end)
+						Diagnostics.error(`Requirement ${def.id} does not have implementation`, def.idRange)
 					);
 				}
 			});
+			// $$Implements Analyzer.ERR_NOIMPL_TGT
+			this.checkRefsTargets(fileData, analyzer.diagnostics);
 		}
 
-		// $$Implements Editor.ERR_NOIMPL
+		// $$Implements Editor.ERR_NOIMPL, Editor.ERR_NO_IMPLMNT_TGT
 		this.connection.sendDiagnostics({ uri: uri, diagnostics:analyzer.diagnostics });
 	}
 	
 	analyzeNonRqFile(uri:string, text:string) {
-		let diagnostics: Diagnostic[] = [];
+		let fileData = this.Files.get(uri);
+		let firstPass = !fileData;
+		this.cleanFileData(fileData);
+		fileData = new FileData();
+		this.Files.set(uri, fileData);
+
 		let lines = text.split('\n');
 		for (let l=0;l<lines.length; l++) {
 			let line = lines[l];
@@ -240,7 +263,6 @@ export default class ShalldnProj {
 			m[1].split(',').forEach(s=>{
 				let id = s.trim();
 				let sp = line.search(id);
-				let fileData = this.Files.get(uri);
 				let ref: ShalldnRqRef = {
 					uri: uri, id, range: {start:{line:l,character:sp},end:{line:l,character:sp+id.length}}
 				}
@@ -253,7 +275,12 @@ export default class ShalldnProj {
 				refs.push(ref);
 			});
 		}
-		// $$Implements Editor.ERR_NOIMPL
+
+		let diagnostics: Diagnostic[] = [];
+		if (!firstPass) // $$Implements Analyzer.ERR_NOIMPL_TGT
+			this.checkRefsTargets(fileData,diagnostics);
+
+		// $$Implements Editor.ERR_NO_IMPLMNT_TGT
 		this.connection.sendDiagnostics({ uri: uri, diagnostics });
 	}
 
