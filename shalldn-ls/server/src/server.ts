@@ -22,10 +22,13 @@ import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
 
-import { ANTLRErrorListener, CharStreams, CommonTokenStream, RecognitionException, Recognizer, ParserErrorListener, Token, DiagnosticErrorListener } from 'antlr4ts';
-import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
+import { Diagnostics } from './Diagnostics';
+import { Util } from './util';
+import ShalldnProj from './model/ShalldnProj';
+import { URI } from 'vscode-uri';
 
 import {from, mergeMap} from 'rxjs';
+import * as fs from 'fs/promises';
 
 var debug = /--inspect/.test(process.execArgv.join(' '))
 
@@ -152,62 +155,13 @@ documents.onDidChangeContent(change => {
 	validateTextDocument(change.document);
 });
 
-import { shalldnLexer } from './antlr/shalldnLexer'
-import { shalldnParser } from './antlr/shalldnParser'
-import ShalldnDocumentBuilder from './ShalldnDocumentBuilder';
-import { ParseTreeListener } from 'antlr4ts/tree/ParseTreeListener';
-import ShalldnDoc from './model/ShalldnDoc';
-import { Diagnostics } from './Diagnostics';
-import { Util } from './util';
-import ShalldnProj from './model/ShalldnProj';
-import { Observable } from 'rxjs';
-import LexerErrorListener from './LexerErrorListener';
-import ParseErrorListener from './ParseErrorListener';
-
-let diagnostics: Diagnostic[] = [];
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	// In this simple example we get the settings for every validate run.
 	const settings = await getDocumentSettings(textDocument.uri);
 
 	const text = textDocument.getText();
-	diagnostics = [];
-
-	let inputStream = CharStreams.fromString(text);
-	let lexer = new shalldnLexer(inputStream);
-	lexer.addErrorListener(new LexerErrorListener(cpblts.DiagnRelated ? textDocument.uri:"", d=>diagnostics.push(d)));
-	let tokenStream = new CommonTokenStream(lexer);
-	let parser = new shalldnParser(tokenStream);
-	// if (debug) {
-	// 	parser.removeErrorListeners();
-	// 	parser.addErrorListener(new DiagnosticErrorListener());
-	// }
-	parser.addErrorListener(new ParseErrorListener(cpblts.DiagnRelated ? textDocument.uri:"",d=>diagnostics.push(d)));
-	let dctx = parser.document();
-
-	let problems = 0;
-	const doc = new ShalldnDoc(textDocument);
-	let listener = new ShalldnDocumentBuilder(doc, parser);
-	ParseTreeWalker.DEFAULT.walk(listener as ParseTreeListener, dctx);
-	//$$Implements Parser.ERR_No_DOC_Subject
-	if ((doc.subject||null) == null)
-		diagnostics.push(
-			Diagnostics.error(`No subject defined in the document.`, textDocument.positionAt(0))
-			.addRelated('The subject of the document is defined by the only italicized group of words in the first line of the document')
-		);
-
-	
-	for (const rq of doc.requirements) { 
-		//$$Implements Parser.ERR_NO_SUBJ
-		if (doc.subject && !rq.pre.trim().endsWith(doc.subject))
-			diagnostics.push(
-				Diagnostics.errorAtRange(`The requirement subject is different from the document subject ${doc.subject}.`, rq.preRange)
-				.addRelated('The subject of the document is defined by the only italicized group of words in the first line of the document')
-			);
-	}
-
-	// Send the computed diagnostics to VSCode.
-	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+	project.analyze(textDocument.uri,text);
 }
 
 connection.onDidChangeWatchedFiles(_change => {
@@ -275,7 +229,21 @@ var analyzeFiles: RequestType<{
 }, any, any> = new RequestType("analyzeFiles");
 connection.onRequest(analyzeFiles, (data) => {
 	from(data.files)
-	.pipe(mergeMap(url=>project.analyze(url),100))
+	.pipe(
+		mergeMap(uri=>{
+			let path = URI.parse(uri).fsPath;
+			return fs.readFile(path, 'utf8')
+				.then(
+					text => project.analyze(uri,text),
+					reason => connection.sendDiagnostics({ 
+						uri: uri, 
+						diagnostics: [Diagnostics.error(reason.message, { line: 0, character: 0 })]
+					})
+				)
+			}, 
+			100
+		)
+	)
 	.subscribe();
 });
 

@@ -25,9 +25,9 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		private parser: shalldnParser
 	) { }
 
-	private subject = '';
+	public subject = '';
 	private lastRq:RequirementContext | null = null;
-	private lastHeading:HeadingContext | null=null;
+	private lastHeading:HeadingContext | TitleContext | null=null;
 	private headinStack:HeadingContext[]=[];
 
 	getText(ctx: ParserRuleContext|undefined):string {
@@ -40,25 +40,30 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		return s;
 	}
 
-	enterRequirement(ctx: RequirementContext) {
+	exitRequirement(ctx:RequirementContext) {
 		try {
 			let id = ctx.bolded_id()?.IDENTIFIER()?.text || '';
-			let range= Util.rangeOfContext(ctx);
-			this.proj.addRequirement(id,range,this.uri);
+			let range = Util.rangeOfContext(ctx);
+			this.proj.addRequirement(id, range, this.uri);
+			//$$Implements Parser.ERR_NO_SUBJ
+			let pre = this.getText(ctx._pre);
+			if (this.subject && !pre.trim().endsWith(this.subject))
+				this.parser.notifyErrorListeners(
+					`The requirement subject is different from the document subject ${this.subject}.`,
+					ctx._pre.stop||ctx._pre.start,
+					undefined
+				);
 		} catch (e: any) {
 			this.parser.notifyErrorListeners(e, ctx.start, undefined);
 		}
-	}
-
-	exitRequirement(ctx:RequirementContext) {
 		this.lastRq = ctx;
 	}
 
-	enterTitle(ctx: TitleContext) {
-		let title = this.getText(ctx?._subject?.plain_phrase());
-		this.subject = title;
+	exitTitle(ctx: TitleContext) {
+		this.subject = this.getText(ctx?._subject?.plain_phrase());
+		this.lastHeading = ctx;
 	}
-
+	
 	enterSentence(ctx:SentenceContext) {
 		this.lastRq = null;
 		this.lastHeading = null;
@@ -81,6 +86,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	}
 
 	exitHeading(ctx:HeadingContext) {
+		this.lastHeading = ctx;
 		let defs: {id:string,range:Range}[]=[];
 		ctx.phrase().forEach(p=>{
 			let id = p.italiced_phrase()?.plain_phrase();
@@ -111,13 +117,6 @@ export default class ShalldnProj {
 	private RqDefs: Map<string,ShalldnRqDef[]> = new Map();
 	private RqRefs: Map<string, ShalldnRqRef[]> = new Map();
 	private Files:Map<string,FileData> = new Map();
-
-	public analyze(uri:string) {
-		if (path.extname(uri).toLowerCase() == '.shalldn')
-			return this.analyzeRqFile(uri);
-		else
-			return this.analyzeNonRqFile(uri);
-	}
 
 	public addRequirement(id:string, range:Range, uri: string) {
 		let fileData= this.Files.get(uri);
@@ -153,7 +152,14 @@ export default class ShalldnProj {
 		});
 	}
 
-	analyzeRqFile(uri:string) {
+	public analyze(uri: string, text:string) {
+		if (path.extname(uri).toLowerCase() == '.shalldn')
+			return this.analyzeRqFile(uri,text);
+		else
+			return this.analyzeNonRqFile(uri,text);
+	}
+
+	analyzeRqFile(uri:string, text:string) {
 		let fileData = this.Files.get(uri);
 		if (fileData) {
 			fileData.RqDefs.forEach(def => {
@@ -161,79 +167,64 @@ export default class ShalldnProj {
 				if (!defs)
 					return;
 				let newdefs = defs.filter(d => d.uri!=def.uri);
-				this.RqDefs.set(uri,newdefs);
+				this.RqDefs.set(def.id,newdefs);
 			});
 			fileData.RqRefs.forEach(ref => {
-				let refs = this.RqDefs.get(ref.id);
+				let refs = this.RqRefs.get(ref.id);
 				if (!refs)
 					return;
 				let newrefs = refs.filter(d => d.uri != ref.uri);
-				this.RqDefs.set(uri, newrefs);
+				this.RqRefs.set(ref.id, newrefs);
 			});
 		}
 		let diagnostics: Diagnostic[] = [];
 		this.Files.set(uri,new FileData());
-		let path = URI.parse(uri).fsPath;
+		let inputStream = CharStreams.fromString(text);
+		let lexer = new shalldnLexer(inputStream);
+		lexer.addErrorListener(new LexerErrorListener(this.cpblts.DiagnRelated?uri:"", d => diagnostics.push(d)));
+		let tokenStream = new CommonTokenStream(lexer);
+		let parser = new shalldnParser(tokenStream);
+		parser.addErrorListener(new ParseErrorListener(this.cpblts.DiagnRelated ? uri : "", d => diagnostics.push(d)));
+		let dctx = parser.document();
+		let analyzer = new ShalldnProjectRqAnalyzer(uri,this,parser);
+		ParseTreeWalker.DEFAULT.walk(analyzer as ParseTreeListener, dctx);
 
-		return fs.readFile(path,'utf8')
-		.then(
-			text=>{
-				let inputStream = CharStreams.fromString(text);
-				let lexer = new shalldnLexer(inputStream);
-				lexer.addErrorListener(new LexerErrorListener(this.cpblts.DiagnRelated?uri:"", d => diagnostics.push(d)));
-				let tokenStream = new CommonTokenStream(lexer);
-				let parser = new shalldnParser(tokenStream);
-				parser.addErrorListener(new ParseErrorListener(this.cpblts.DiagnRelated ? uri : "", d => diagnostics.push(d)));
-				let dctx = parser.document();
-				let analyzer = new ShalldnProjectRqAnalyzer(uri,this,parser);
-				ParseTreeWalker.DEFAULT.walk(analyzer as ParseTreeListener, dctx);
-			},
-			reason=> {
-				diagnostics.push(Diagnostics.error(reason,{line:0,character:0}));
-			}
-		)
-		.finally(()=>{
-			this.connection.sendDiagnostics({ uri: uri, diagnostics });
-		});
+		//$$Implements Parser.ERR_No_DOC_Subject
+		if (!analyzer.subject)
+			diagnostics.push(
+				Diagnostics.error(`No subject defined in the document.`, {line:0,character:0})
+					.addRelated('The subject of the document is defined by the only italicized group of words in the first line of the document')
+			);
+
+
+		this.connection.sendDiagnostics({ uri: uri, diagnostics });
 	}
 	
-	analyzeNonRqFile(uri:string) {
+	analyzeNonRqFile(uri:string, text:string) {
 		let diagnostics: Diagnostic[] = [];
-		let path = URI.parse(uri).fsPath;
-
-		return fs.readFile(path, 'utf8')
-		.then(
-			txt=>{
-				let lines = txt.split('\n');
-				for (let l=0;l<lines.length; l++) {
-					let line = lines[l];
-					let m = line.trim().match(/.*\$\$Implements ([\w\.]+(?:\s*,\s*[\w\.]+\s*)*)/)
-					if (!m)
-						continue;
-					m[1].split(',').forEach(s=>{
-						let id = s.trim();
-						let sp = line.search(id);
-						let fileData = this.Files.get(uri);
-						let ref: ShalldnRqRef = {
-							uri: uri, id, range: {start:{line:l,character:sp},end:{line:l,character:sp+id.length}}
-						}
-						fileData?.RqRefs.push(ref);
-						let refs = this.RqRefs.get(ref.id);
-						if (!refs) {
-							refs = [];
-							this.RqRefs.set(ref.id, refs);
-						}
-						refs.push(ref);
-					});
+		let lines = text.split('\n');
+		for (let l=0;l<lines.length; l++) {
+			let line = lines[l];
+			let m = line.trim().match(/.*\$\$Implements ([\w\.]+(?:\s*,\s*[\w\.]+\s*)*)/)
+			if (!m)
+				continue;
+			m[1].split(',').forEach(s=>{
+				let id = s.trim();
+				let sp = line.search(id);
+				let fileData = this.Files.get(uri);
+				let ref: ShalldnRqRef = {
+					uri: uri, id, range: {start:{line:l,character:sp},end:{line:l,character:sp+id.length}}
 				}
-			},
-			reason => {
-				diagnostics.push(Diagnostics.error(reason, { line: 0, character: 0 }));
-			}
-		)
-		.finally(()=>{
-			this.connection.sendDiagnostics({ uri: uri, diagnostics });
-		});
+				fileData?.RqRefs.push(ref);
+				let refs = this.RqRefs.get(ref.id);
+				if (!refs) {
+					refs = [];
+					this.RqRefs.set(ref.id, refs);
+				}
+				refs.push(ref);
+			});
+		}
+		this.connection.sendDiagnostics({ uri: uri, diagnostics });
 	}
 
 	public findDefinition(id:string): Location[] {
