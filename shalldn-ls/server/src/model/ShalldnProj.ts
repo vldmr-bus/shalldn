@@ -80,6 +80,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	}
 
 	enterImplmnt(ctx: ImplmntContext) {
+		// $$Implements Parser.ERR_IMPLMNT
 		if (this.lastRq == null && this.lastHeading==null)
 			this.diagnostics.push(Diagnostics.error(
 				"Implementation link in the list that is not immidiately after requirement or heading", 
@@ -97,6 +98,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		this.lastHeading = ctx;
 		let defs: ShalldnRqDef[]=[];
 		ctx.phrase().forEach(p=>{
+			// $$Implements Parser.INFRML_ID
 			let id = p.italiced_phrase()?.plain_phrase();
 			if (!id)
 				return;
@@ -107,15 +109,14 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 				idRange: Util.rangeOfContext(id)
 			});
 		});
+
+		// $$Implements Parser.ERR_HDNG_MULT_ITLC
 		if (defs.length>1)
 			this.diagnostics.push(Diagnostics.error(
 				"Heading shall have a single italicized phrase as an informal requirement identifier", 
 				Util.rangeOfContext(ctx)
 			));
-		if (defs.length==1) {
-			let def = defs[0];
-			this.proj.addRequirement(def);
-		}
+		defs.forEach(d=>this.proj.addRequirement(d));
 	}
 }
 
@@ -228,9 +229,10 @@ export default class ShalldnProj {
 		return linked;
 	}
 
+	// $$Implements Analyzer.PROJECT
 	public analyze(uri: string, text:string) {
 		if (path.extname(uri).toLowerCase() == '.shalldn')
-			return this.analyzeRqFile(uri,text);
+			return this.analyzeRqFile(uri,text); 
 		else
 			return this.analyzeNonRqFile(uri,text);
 	}
@@ -287,6 +289,7 @@ export default class ShalldnProj {
 		let lines = text.split('\n');
 		for (let l=0;l<lines.length; l++) {
 			let line = lines[l];
+			// $$Implements Analyzer.CMNT_IMPLMNT
 			let m = line.trim().match(/.*\$\$Implements ([\w\.]+(?:\s*,\s*[\w\.]+\s*)*)/)
 			if (!m)
 				continue;
@@ -314,6 +317,7 @@ export default class ShalldnProj {
 		this.connection.sendDiagnostics({ uri: uri, diagnostics });
 	}
 
+	// $$Implements Analyzer.RQS
 	public findDefinition(id:string): Location[] {
 		let defs = this.RqDefs.get(id)||[];
 		return defs.map(def => <Location>{
@@ -322,6 +326,7 @@ export default class ShalldnProj {
 		});
 	}
 
+	// $$Implements Analyzer.IMPLNT
 	public findReferences(id: string): Location[] {
 		let defs = this.RqRefs.get(id) || [];
 		return defs.map(def => <Location>{

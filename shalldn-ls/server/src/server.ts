@@ -251,6 +251,7 @@ connection.onReferences((params)=>{
 
 })
 
+// $$Implements Analyzer.PROJECT
 function analyzeFiles(files: string[]) {
 	return from(files)
 	.pipe(
@@ -270,6 +271,7 @@ function analyzeFiles(files: string[]) {
 	);
 }
 
+// $$Implements Analyzer.PROJECT
 var analyzeFilesRequest: RequestType<{
 	files: string[],
 }, any, any> = new RequestType("analyzeFiles");

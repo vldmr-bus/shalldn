@@ -60,9 +60,10 @@ export function activate(context: ExtensionContext) {
 	client.start();
 
 	let files = {
-		include: ['shalldn','ts','cs'],
+		include: ['shalldn','ts','cs','g4'],
 		exclude: []
 	}
+	// $$Implements Analyzer.PROJECT
 	workspace.findFiles(`**/*.{${files.include.join(',')}}`).then(files => {
 		var uris: string[] = [];
 		files.forEach(file => {
