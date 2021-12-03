@@ -30,7 +30,7 @@ def_rev: body = italiced_phrase '*(' subject = phrase ')*' ;
 phrase: plain_phrase|italiced_phrase|bolded_phrase|nota_bene|def_drct|def_rev;
 
 // $$Implements Parser.DOC_Subject
-title: '#' phrase* subject = italiced_phrase WORD* ~'\n'? ;
+title: '#'? phrase* subject = italiced_phrase WORD* ~'\n'? ;
 heading: '\n'*HASH+ phrase+ '\n';
 // $$Implements Parser.IMPLMNT
 implmnt: '\n'+(STAR)+'Implements' ((bolded_id (',' bolded_id)*) |bolded_phrase) sentence_stop? ;
@@ -39,4 +39,4 @@ ul: (ul_element|implmnt)+;
 // $$Implements Parser.RQ_statement, Parser.ERR_No_RQ_ID, Parser.ERR_DUP_SHALL
 requirement: bolded_id '\n'* pre = phrase+ SHALL post = phrase+ '.''\n';
 sentence: phrase+ ('.'|ul);
-document: title (heading|requirement|sentence|ul|'\n'+)+ EOF;
+document: '\n'* title (heading|requirement|sentence|ul|'\n'+)+ EOF;

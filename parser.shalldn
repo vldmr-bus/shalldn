@@ -1,4 +1,4 @@
-# Definition of the Shalldn *parser*
+Definition of the Shalldn *parser*
 * Implements **Shalldn parser**
 
 ## Requirements
@@ -6,7 +6,7 @@
 The parser **shall** recognize a sentence as a requirement if the sentence is preceded by a *separately bolded* *(i.e. surrounded by bold markdown immediately on both sides)* *identifier* *(a contiguous group of alphanumeric, '_' and '.' characters)* and includes the document subject followed by separately bolded word "shall". 
 
 **Parser.DOC_Subject**  
-The parser **shall** use the only italicized group of words in the first line of the document file as the document subject.
+The parser **shall** use the only italicized group of words in the title of the document file as the document subject.
 
 **Parser.ERR_No_DOC_Subject**  
 The parser **shall** indicate error condition when the first line in the document file does not contain a single italicized group of words.

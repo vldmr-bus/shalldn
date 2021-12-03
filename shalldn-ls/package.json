@@ -1,6 +1,7 @@
 {
 	"name": "shalldn",
-	"description": "A language server for Shalldn language",
+	"displayName": "Shalldn",
+	"description": "Shalldn requirements language support",
 	"author": "Vladimir Avdonin",
 	"license": "MIT",
 	"version": "0.0.1",
@@ -8,15 +9,23 @@
 		"type": "git",
 		"url": "https://github.com/vldmr-bus/shalldn"
 	},
-	"publisher": "Vladimir Avdonin",
+	"bugs": {
+		"url": "https://github.com/vldmr-bus/shalldn/issues"
+	},
+	"icon": "image/Shalldn.png",
+	"publisher": "vldmr-bus",
 	"categories": [
 		"Programming Languages",
 		"Linters",
 		"Debuggers"
 	],
 	"tags": [
-		"requirements"
+		"requirements",
+		"design",
+		"traceablity",
+		"coverage"
 	],
+	"preview": true,
 	"engines": {
 		"vscode": "^1.43.0"
 	},
@@ -63,17 +72,23 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
+		"vscode:prepublish-esbuild": "cd client && esbuild ./src/extension.ts --bundle --outfile=out/extension --external:vscode --format=cjs --platform=node  --minify && cd ../server && esbuild ./src/server.ts --bundle --outfile=out/server --external:vscode --format=cjs --platform=node  --minify && cd ..",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-		"test": "sh ./scripts/e2e.sh"
+		"test": "sh ./scripts/e2e.sh",
+		"esbuild-base": "cd client && esbuild ./src/extension.ts --bundle --outfile=out/extension --external:vscode --format=cjs --platform=node && cd ../server && esbuild ./src/server --bundle --outfile=out/server --external:vscode --format=cjs --platform=node && cd ..",
+		"esbuild": "cd client && esbuild ./src/extension.ts --bundle --outfile=out/extension --external:vscode --format=cjs --platform=node  --sourcemap && cd ../server && esbuild ./src/server.ts --bundle --outfile=out/server --external:vscode --format=cjs --platform=node  --sourcemap && cd ..",
+		"esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+		"test-compile": "tsc -p ./"
 	},
 	"devDependencies": {
 		"@types/mocha": "^8.2.2",
 		"@types/node": "^16.11.9",
 		"@typescript-eslint/eslint-plugin": "^4.23.0",
 		"@typescript-eslint/parser": "^4.23.0",
+		"esbuild": "^0.14.1",
 		"eslint": "^7.26.0",
 		"mocha": "^8.3.2",
 		"typescript": "^4.4.3"
