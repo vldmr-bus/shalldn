@@ -16,7 +16,7 @@ The subject of the document is a single *italicized* group of words in the first
 
 Each requirement must have a unique identifier, that may contain alpha-numeric characters and dots. the identifier must immediately precede the requirement sentence and be bolded. It is an error to have a requirement sentence without identifier or with non-unique identifier.
 
-The requirement identifiers are used to link requirements to different levels of design be that lower level requirements, implementing code or test cases. In Shalldn documents linkage is established with implementation clause: an bulleted line after a requirement with the word 'Implements' followed one or more bolded requirement identifiers, separated by commas. Bulleting is marked by starting the line with an asterisk. In any other file the clause is usually put in a comment starting with keyword '$$Implements' followed by comma-separated list of requirement identifiers,
+The requirement identifiers are used to link requirements on different levels of design be that lower level requirements, implementing code or test cases. In Shalldn documents linkage is established with implementation clause: a bulleted line after a requirement starting with the word 'Implements' followed by one or more bolded requirement identifiers, separated by commas. Bulleting is marked by starting the line with an asterisk. In any other file the clause is usually put in a comment starting with keyword '$$Implements' followed by comma-separated list of requirement identifiers.
 
 With the above description in mind, here is a complete valid Shalldn document:
 

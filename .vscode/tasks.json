@@ -58,9 +58,6 @@
 			"options": {
 				"cwd": "${workspaceRoot}/shalldn-ls/server"
 			},
-			"dependsOn": [
-				"Compile grammar"
-			],
 			"label": "antlr4ts"
 		}
 	]

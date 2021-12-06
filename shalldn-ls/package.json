@@ -72,28 +72,23 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
-		"vscode:prepublish-esbuild": "cd client && esbuild ./src/extension.ts --bundle --outfile=out/extension --external:vscode --format=cjs --platform=node  --minify && cd ../server && esbuild ./src/server.ts --bundle --outfile=out/server --external:vscode --format=cjs --platform=node  --minify && cd ..",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-		"test": "sh ./scripts/e2e.sh",
-		"esbuild-base": "cd client && esbuild ./src/extension.ts --bundle --outfile=out/extension --external:vscode --format=cjs --platform=node && cd ../server && esbuild ./src/server --bundle --outfile=out/server --external:vscode --format=cjs --platform=node && cd ..",
-		"esbuild": "cd client && esbuild ./src/extension.ts --bundle --outfile=out/extension --external:vscode --format=cjs --platform=node  --sourcemap && cd ../server && esbuild ./src/server.ts --bundle --outfile=out/server --external:vscode --format=cjs --platform=node  --sourcemap && cd ..",
-		"esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
-		"test-compile": "tsc -p ./"
+		"test": "sh ./scripts/e2e.sh"
 	},
 	"devDependencies": {
 		"@types/mocha": "^8.2.2",
 		"@types/node": "^16.11.9",
 		"@typescript-eslint/eslint-plugin": "^4.23.0",
 		"@typescript-eslint/parser": "^4.23.0",
-		"esbuild": "^0.14.1",
 		"eslint": "^7.26.0",
 		"mocha": "^8.3.2",
 		"typescript": "^4.4.3"
 	},
 	"dependencies": {
+		"ignore": "^5.1.9",
 		"rxjs": "^7.4.0",
 		"vscode-uri": "^3.0.2"
 	}

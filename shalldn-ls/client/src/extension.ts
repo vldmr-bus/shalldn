@@ -1,4 +1,6 @@
 import * as path from 'path';
+import { existsSync, readFileSync} from 'fs';
+import ignore from 'ignore';
 import { workspace, ExtensionContext, StatusBarItem, StatusBarAlignment, window } from 'vscode';
 
 import {
@@ -60,14 +62,32 @@ export function activate(context: ExtensionContext) {
 	client.start();
 
 	let files = {
-		include: ['shalldn','ts','cs','g4'],
-		exclude: []
+		include: ['*'],//['shalldn','js','ts','cs','g4','c','cpp'],
+		exclude: ['png','jpg','gif','dll','jar']
 	}
-	// $$Implements Analyzer.PROJECT
-	workspace.findFiles(`**/*.{${files.include.join(',')}}`).then(files => {
+
+	const ig = ignore();
+	workspace.findFiles('**/.gitignore').then(uris=>{
+		// $$Implements Analyzer.GITIGNORE
+		uris.forEach(uri=>{
+			if (existsSync(uri.fsPath)) {
+				let txt = readFileSync(uri.fsPath).toString()
+				let pfx = workspace.asRelativePath(uri).replace(/\/?.gitignore$/,'');
+				if (pfx)
+					txt = txt.replace(/\r/g,'').replace(/^([^#].*)$/gm,`${pfx}$1`);
+				ig.add(txt)
+			}
+		})
+		let include = `**/*.{${files.include.join(',') || '*'}}`;
+		let exlude = `**/*.{${files.exclude.join(',') || undefined}}`;
+		return workspace.findFiles(include,exlude);
+	})
+	.then(files => {
+		// $$Implements Analyzer.PROJECT
 		var uris: string[] = [];
-		files.forEach(file => {
-			uris.push(file.toString());
+		files.forEach(uri => {
+			if (!ig.ignores(workspace.asRelativePath(uri.fsPath)))
+				uris.push(uri.toString());
 		});
 
 		client.onReady().then(() => {
