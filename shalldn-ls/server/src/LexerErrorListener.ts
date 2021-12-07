@@ -1,10 +1,10 @@
 import { ANTLRErrorListener, RecognitionException, Recognizer } from 'antlr4ts';
-import { Diagnostics } from './Diagnostics';
+import { Diagnostics, ShalldnDiagnostic } from './Diagnostics';
 
 export default class LexerErrorListener implements ANTLRErrorListener<number> {
 	constructor(
 		private uri:string,
-		private sink: (diag:Diagnostics.ShalldnDiagnostic)=>void
+		private sink: (diag:ShalldnDiagnostic)=>void
 	){}
 
 	syntaxError<T>(recognizer: Recognizer<T, any>, offendingSymbol: T | undefined, line: number, charPositionInLine: number, msg: string, e: RecognitionException | undefined): void {

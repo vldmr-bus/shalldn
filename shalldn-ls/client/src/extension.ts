@@ -1,7 +1,7 @@
 import * as path from 'path';
 import { existsSync, readFileSync} from 'fs';
 import ignore from 'ignore';
-import { workspace, ExtensionContext, StatusBarItem, StatusBarAlignment, window } from 'vscode';
+import { workspace, ExtensionContext, StatusBarItem, StatusBarAlignment, window, commands, RelativePattern } from 'vscode';
 
 import {
 	LanguageClient,
@@ -46,7 +46,8 @@ export function activate(context: ExtensionContext) {
 		],
 		synchronize: {
 			// Notify the server about file changes to '.clientrc files contained in the workspace
-			fileEvents: workspace.createFileSystemWatcher('**/*')
+			fileEvents: (workspace.workspaceFolders || [])
+				.map(f => workspace.createFileSystemWatcher(new RelativePattern(f, '**/*')))
 		}
 	};
 
@@ -56,6 +57,13 @@ export function activate(context: ExtensionContext) {
 		'Shalldn Language Server',
 		serverOptions,
 		clientOptions
+	);
+
+	// $$Implements Editor.ERR_DEMOTE
+	context.subscriptions.push(
+		commands.registerCommand('shalldn.toggleErrWarn', () => {
+			client.sendRequest("toggleErrWarn",true);
+		})
 	);
 
 	// Start the client. This will also launch the server
@@ -96,6 +104,7 @@ export function activate(context: ExtensionContext) {
 			});
 		});
 	});
+
 }
 
 export function deactivate(): Thenable<void> | undefined {

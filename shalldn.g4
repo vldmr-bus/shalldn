@@ -37,6 +37,6 @@ implmnt: '\n'+(STAR)+'Implements' ((bolded_id (',' bolded_id)*) |bolded_phrase) 
 ul_element: '\n'+(STAR)+ phrase sentence_stop? ;
 ul: (ul_element|implmnt)+;
 // $$Implements Parser.RQ_statement, Parser.ERR_No_RQ_ID, Parser.ERR_DUP_SHALL
-requirement: bolded_id '\n'* pre = phrase+ SHALL post = phrase+ '.''\n';
+requirement: bolded_id '\n'* pre = phrase+ SHALL post = phrase+ '.';
 sentence: phrase+ ('.'|ul);
 document: '\n'* title (heading|requirement|sentence|ul|'\n'+)+ EOF;

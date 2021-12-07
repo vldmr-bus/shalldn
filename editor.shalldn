@@ -19,3 +19,6 @@ The editor **shall** indicate an error for every implementation clause for which
 **Editor.CFG_PRJ_FTYPES**
 The editor **shall** allow configuring a set of file name extensions to select a non-requirement files included in project.
 
+**Editor.ERR_DEMOTE**
+The editor **shall** allow reporting errors with reduced severity (as warnings) until the end of editing session.
+* Rationale: In VS Code active errors prevents starting debug session. Demoting errors to warnings should not be permanent setting so that the user is reminded of actual scope of problems at least at start of session.

@@ -1,10 +1,10 @@
 import { ParserErrorListener, RecognitionException, Recognizer, Token } from 'antlr4ts';
-import { Diagnostics } from './Diagnostics';
+import { Diagnostics, ShalldnDiagnostic } from './Diagnostics';
 
 export default class ParseErrorListener implements ParserErrorListener {
 	constructor(
 		private uri:string,
-		private sink: (diag:Diagnostics.ShalldnDiagnostic)=>void
+		private sink: (diag:ShalldnDiagnostic)=>void
 	){}
 
 	syntaxError<T extends Token>(recognizer: Recognizer<T, any>, offendingSymbol: T | undefined, line: number, charPositionInLine: number, msg: string, e: RecognitionException | undefined): void {

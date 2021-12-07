@@ -8,14 +8,14 @@ import { shalldnLexer } from '../antlr/shalldnLexer';
 import { HeadingContext, ImplmntContext, RequirementContext, SentenceContext, shalldnParser, TitleContext, UlContext, Ul_elementContext } from '../antlr/shalldnParser';
 import { shalldnListener } from '../antlr/shalldnListener';
 import { Capabilities } from '../server';
-import { DefinitionParams, Diagnostic, Location, Range, _Connection } from 'vscode-languageserver';
+import { DefinitionParams, Diagnostic, DiagnosticSeverity, Location, Range, _Connection } from 'vscode-languageserver';
 import ShalldnRqDef from './ShalldnRqDef';
 import { Util } from '../util';
 import LexerErrorListener from '../LexerErrorListener';
 import ParseErrorListener from '../ParseErrorListener';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
 import { ParseTreeListener } from 'antlr4ts/tree/ParseTreeListener';
-import { Diagnostics } from '../Diagnostics';
+import { Diagnostics, ShalldnDiagnostic } from '../Diagnostics';
 import { URI } from 'vscode-uri';
 import { Interval } from 'antlr4ts/misc/Interval';
 class ShalldnProjectRqAnalyzer implements shalldnListener {
@@ -25,7 +25,6 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	) { }
 
 	public subject = '';
-	public diagnostics: Diagnostic[] = [];
 	private lastRq:RequirementContext | null = null;
 	private lastHeading:HeadingContext | TitleContext | null=null;
 	private headinStack:HeadingContext[]=[];
@@ -54,12 +53,14 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			//$$Implements Parser.ERR_NO_SUBJ
 			let pre = this.getText(ctx._pre);
 			if (this.subject && !pre.trim().endsWith(this.subject))
-				this.diagnostics.push(Diagnostics.error(
+				this.proj.addDiagnostic(
+					this.uri,
+					Diagnostics.error(
 					`The requirement subject is different from the document subject ${this.subject}.`,
 					Util.rangeOfContext(ctx._pre)
 				));
 		} catch (e: any) {
-			this.diagnostics.push(Diagnostics.error(e, def.idRange));
+			this.proj.addDiagnostic(this.uri,Diagnostics.error(e, def.idRange));
 		}
 		this.lastRq = ctx;
 	}
@@ -82,7 +83,9 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	enterImplmnt(ctx: ImplmntContext) {
 		// $$Implements Parser.ERR_IMPLMNT
 		if (this.lastRq == null && this.lastHeading==null)
-			this.diagnostics.push(Diagnostics.error(
+			this.proj.addDiagnostic(
+				this.uri,
+				Diagnostics.error(
 				"Implementation link in the list that is not immidiately after requirement or heading", 
 				Util.rangeOfContext(ctx)
 			));
@@ -112,7 +115,9 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 
 		// $$Implements Parser.ERR_HDNG_MULT_ITLC
 		if (defs.length>1)
-			this.diagnostics.push(Diagnostics.error(
+			this.proj.addDiagnostic(
+				this.uri,
+				Diagnostics.error(
 				"Heading shall have a single italicized phrase as an informal requirement identifier", 
 				Util.rangeOfContext(ctx)
 			));
@@ -134,6 +139,23 @@ export default class ShalldnProj {
 	private RqDefs: Map<string,ShalldnRqDef[]> = new Map();
 	private RqRefs: Map<string, ShalldnRqRef[]> = new Map();
 	private Files:Map<string,FileData> = new Map();
+	public diagnostics: Map<string,ShalldnDiagnostic[]> = new Map();
+	private showAllAsWarnings = false;
+
+	public getDiagnostics(uri:string) {
+		let diags = this.diagnostics.get(uri);
+		if (!diags) {
+			diags = [];
+			this.diagnostics.set(uri,diags);
+		}
+		return diags;
+	}
+
+	public addDiagnostic(uri: string, diag: ShalldnDiagnostic) {
+		if (this.showAllAsWarnings)
+			diag.demote();
+		this.getDiagnostics(uri).push(diag);
+	}
 
 	public addRequirement(def: ShalldnRqDef) {
 		let fileData = this.Files.get(def.uri);
@@ -231,10 +253,15 @@ export default class ShalldnProj {
 
 	// $$Implements Analyzer.PROJECT
 	public analyze(uri: string, text:string) {
+		let diagnostics:ShalldnDiagnostic[] = [];
+		this.diagnostics.set(uri,diagnostics);
 		if (path.extname(uri).toLowerCase() == '.shalldn')
-			return this.analyzeRqFile(uri,text); 
+			this.analyzeRqFile(uri,text); 
 		else
-			return this.analyzeNonRqFile(uri,text);
+			this.analyzeNonRqFile(uri,text);
+
+		// $$Implements Editor.ERR_NOIMPL, Editor.ERR_NO_IMPLMNT_TGT, Editor.ERR_NO_IMPLMNT_TGT
+		this.connection.sendDiagnostics({ uri, diagnostics });
 	}
 
 	analyzeRqFile(uri:string, text:string) {
@@ -243,20 +270,21 @@ export default class ShalldnProj {
 		this.cleanFileData(fileData);
 		fileData = new FileData();
 		this.Files.set(uri,fileData);
+		let diags = this.getDiagnostics(uri);
 
 		let analyzer = new ShalldnProjectRqAnalyzer(uri, this);
 		let inputStream = CharStreams.fromString(text);
 		let lexer = new shalldnLexer(inputStream);
-		lexer.addErrorListener(new LexerErrorListener(this.cpblts.DiagnRelated ? uri : "", d => analyzer.diagnostics.push(d)));
+		lexer.addErrorListener(new LexerErrorListener(this.cpblts.DiagnRelated ? uri : "", d => diags.push(d)));
 		let tokenStream = new CommonTokenStream(lexer);
 		let parser = new shalldnParser(tokenStream);
-		parser.addErrorListener(new ParseErrorListener(this.cpblts.DiagnRelated ? uri : "", d => analyzer.diagnostics.push(d)));
+		parser.addErrorListener(new ParseErrorListener(this.cpblts.DiagnRelated ? uri : "", d => diags.push(d)));
 		let dctx = parser.document();
 		ParseTreeWalker.DEFAULT.walk(analyzer as ParseTreeListener, dctx);
 
 		//$$Implements Parser.ERR_No_DOC_Subject
 		if (!analyzer.subject)
-			analyzer.diagnostics.push(
+			diags.push(
 				Diagnostics.error(`No subject defined in the document.`, {line:0,character:0})
 					.addRelated('The subject of the document is defined by the only italicized group of words in the first line of the document')
 			);
@@ -266,17 +294,14 @@ export default class ShalldnProj {
 			fileData.RqDefs.forEach(def => {
 				let refs = this.RqRefs.get(def.id);
 				if (!refs || refs.length==0){
-					analyzer.diagnostics.push(
+					diags.push(
 						Diagnostics.error(`Requirement ${def.id} does not have implementation`, def.idRange)
 					);
 				}
 			});
 			// $$Implements Analyzer.ERR_NOIMPL_TGT
-			this.checkRefsTargets(fileData, analyzer.diagnostics);
+			this.checkRefsTargets(fileData, diags);
 		}
-
-		// $$Implements Editor.ERR_NOIMPL, Editor.ERR_NO_IMPLMNT_TGT
-		this.connection.sendDiagnostics({ uri: uri, diagnostics:analyzer.diagnostics });
 	}
 	
 	analyzeNonRqFile(uri:string, text:string) {
@@ -313,8 +338,6 @@ export default class ShalldnProj {
 		if (!firstPass) // $$Implements Analyzer.ERR_NOIMPL_TGT
 			this.checkRefsTargets(fileData,diagnostics);
 
-		// $$Implements Editor.ERR_NO_IMPLMNT_TGT
-		this.connection.sendDiagnostics({ uri: uri, diagnostics });
 	}
 
 	// $$Implements Analyzer.RQS
@@ -333,6 +356,19 @@ export default class ShalldnProj {
 			uri: def.uri,
 			range: def.range
 		});
+	}
+
+	// $$Implements Editor.ERR_DEMOTE
+	public toggleErrWarn() {
+		this.showAllAsWarnings = !this.showAllAsWarnings;
+		for (const uri of this.diagnostics.keys()) {
+			let diagnostics = this.diagnostics.get(uri);
+			if (!diagnostics)
+				continue;
+			diagnostics.forEach(diag=>diag.promote());
+			this.connection.sendDiagnostics({ uri, diagnostics });
+		}
+		this.diagnostics.keys
 	}
 
 }

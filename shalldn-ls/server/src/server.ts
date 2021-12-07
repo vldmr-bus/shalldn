@@ -191,9 +191,6 @@ connection.onDidChangeWatchedFiles(_change => {
 			analyzeFiles([...linked]).subscribe();
 		}
 	})
-
-	// Monitored files have change in VSCode
-	connection.console.log('We received an file change event');
 });
 
 function isRqDoc(doc:TextDocument):boolean {
@@ -283,6 +280,12 @@ connection.onRequest(analyzeFilesRequest, (data) => {
 			.subscribe();
 		}
 	});
+});
+
+// $$Implements Editor.ERR_DEMOTE
+var toggleErrWarn: RequestType<boolean, any, any> = new RequestType("toggleErrWarn");
+connection.onRequest(toggleErrWarn, () => {
+	project.toggleErrWarn();
 });
 
 // Make the text document manager listen on the connection
