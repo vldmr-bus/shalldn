@@ -172,11 +172,13 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 connection.onDidChangeWatchedFiles(_change => {
 	let changed:string[] = [];
 	_change.changes.forEach(event=>{
+		if (!event.uri.startsWith('file://'))
+			return;
 		if (event.type == FileChangeType.Created)
 			return;
-		if (event.type = FileChangeType.Deleted)
+		if (event.type == FileChangeType.Deleted)
 			project.remove(event.uri);
-		if (event.type = FileChangeType.Changed) {
+		if (event.type == FileChangeType.Changed) {
 			changed.push(event.uri);
 		}
 	})
