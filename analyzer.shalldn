@@ -14,9 +14,9 @@ Address of a text fragment in a project file consisting of the file path relativ
 
 ### Implementation clause
 Either:
-* group implementation clause
-* individual implementation clause
-* inline comment implementation clause
+* group implementation clause;
+* individual implementation clause;
+* inline comment implementation clause;
 
 
 ## Requirements

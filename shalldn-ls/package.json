@@ -83,10 +83,11 @@
 		"watch": "tsc -b -w",
 		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-		"test": "sh ./scripts/e2e.sh",
+		"test": "ts-node ./client/tests/support/cli-runner/runTest",
 		"clean": "del-cli --force ./client/out && del-cli --force ./server/out && del-cli --force ./server/src/antlr"
 	},
 	"devDependencies": {
+		"@cucumber/cucumber": "^8.0.0-rc.1",
 		"@types/mocha": "^8.2.2",
 		"@types/node": "^16.11.9",
 		"@typescript-eslint/eslint-plugin": "^4.23.0",
@@ -94,6 +95,7 @@
 		"del-cli": "^4.0.1",
 		"eslint": "^7.26.0",
 		"mocha": "^8.3.2",
+		"ts-node": "^10.4.0",
 		"typescript": "^4.4.3"
 	},
 	"dependencies": {

@@ -70,11 +70,6 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		this.lastHeading = ctx;
 	}
 	
-	enterSentence(ctx:SentenceContext) {
-		this.lastRq = null;
-		this.lastHeading = null;
-	}
-
 	exitUl(ctx:UlContext) {
 		this.lastRq = null;
 		this.lastHeading = null;
@@ -224,7 +219,7 @@ export default class ShalldnProj {
 			let defs = this.RqDefs.get(ref.id);
 			if (!defs || defs.length==0) {
 				diagnostics.push(
-					Diagnostics.error(`Implementation of non-exisiting requirement ${ref.id} `, ref.range)
+					Diagnostics.error(`Implementation of non-exisiting requirement ${ref.id}`, ref.range)
 				);
 			}
 		});
