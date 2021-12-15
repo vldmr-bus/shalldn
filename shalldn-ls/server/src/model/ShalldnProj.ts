@@ -8,7 +8,7 @@ import { shalldnLexer } from '../antlr/shalldnLexer';
 import { HeadingContext, ImplmntContext, RequirementContext, SentenceContext, shalldnParser, TitleContext, UlContext, Ul_elementContext } from '../antlr/shalldnParser';
 import { shalldnListener } from '../antlr/shalldnListener';
 import { Capabilities } from '../server';
-import { DefinitionParams, Diagnostic, DiagnosticSeverity, Location, Range, _Connection } from 'vscode-languageserver';
+import { DefinitionParams, Diagnostic, DiagnosticSeverity, integer, Location, Range, _Connection } from 'vscode-languageserver';
 import ShalldnRqDef from './ShalldnRqDef';
 import { Util } from '../util';
 import LexerErrorListener from '../LexerErrorListener';
@@ -137,6 +137,10 @@ export default class ShalldnProj {
 	public diagnostics: Map<string,ShalldnDiagnostic[]> = new Map();
 	private showAllAsWarnings = false;
 
+	resetDiagnostics(uri:string) {
+		this.diagnostics.set(uri, []);
+	}
+
 	public getDiagnostics(uri:string) {
 		let diags = this.diagnostics.get(uri);
 		if (!diags) {
@@ -214,11 +218,12 @@ export default class ShalldnProj {
 	}
 
 	// $$Implements Analyzer.ERR_NOIMPL_TGT
-	checkRefsTargets(fileData:FileData, diagnostics:Diagnostic[]) {
+	checkRefsTargets(fileData:FileData, uri:string) {
 		fileData.RqRefs.forEach(ref => {
 			let defs = this.RqDefs.get(ref.id);
 			if (!defs || defs.length==0) {
-				diagnostics.push(
+				this.addDiagnostic(
+					uri,
 					Diagnostics.error(`Implementation of non-exisiting requirement ${ref.id}`, ref.range)
 				);
 			}
@@ -248,15 +253,14 @@ export default class ShalldnProj {
 
 	// $$Implements Analyzer.PROJECT
 	public analyze(uri: string, text:string) {
-		let diagnostics:ShalldnDiagnostic[] = [];
-		this.diagnostics.set(uri,diagnostics);
+		this.resetDiagnostics(uri);
 		if (path.extname(uri).toLowerCase() == '.shalldn')
 			this.analyzeRqFile(uri,text); 
 		else
 			this.analyzeNonRqFile(uri,text);
 
 		// $$Implements Editor.ERR_NOIMPL, Editor.ERR_NO_IMPLMNT_TGT, Editor.ERR_NO_IMPLMNT_TGT
-		this.connection.sendDiagnostics({ uri, diagnostics });
+		this.connection.sendDiagnostics({ uri, diagnostics:this.getDiagnostics(uri) });
 	}
 
 	analyzeRqFile(uri:string, text:string) {
@@ -265,21 +269,21 @@ export default class ShalldnProj {
 		this.cleanFileData(fileData);
 		fileData = new FileData();
 		this.Files.set(uri,fileData);
-		let diags = this.getDiagnostics(uri);
 
 		let analyzer = new ShalldnProjectRqAnalyzer(uri, this);
 		let inputStream = CharStreams.fromString(text);
 		let lexer = new shalldnLexer(inputStream);
-		lexer.addErrorListener(new LexerErrorListener(this.cpblts.DiagnRelated ? uri : "", d => diags.push(d)));
+		lexer.addErrorListener(new LexerErrorListener(this.cpblts.DiagnRelated ? uri : "", d => this.addDiagnostic(uri,d)));
 		let tokenStream = new CommonTokenStream(lexer);
 		let parser = new shalldnParser(tokenStream);
-		parser.addErrorListener(new ParseErrorListener(this.cpblts.DiagnRelated ? uri : "", d => diags.push(d)));
+		parser.addErrorListener(new ParseErrorListener(this.cpblts.DiagnRelated ? uri : "", d => this.addDiagnostic(uri,d)));
 		let dctx = parser.document();
 		ParseTreeWalker.DEFAULT.walk(analyzer as ParseTreeListener, dctx);
 
 		//$$Implements Parser.ERR_No_DOC_Subject
 		if (!analyzer.subject)
-			diags.push(
+			this.addDiagnostic(
+				uri,
 				Diagnostics.error(`No subject defined in the document.`, {line:0,character:0})
 					.addRelated('The subject of the document is defined by the only italicized group of words in the first line of the document')
 			);
@@ -289,13 +293,14 @@ export default class ShalldnProj {
 			fileData.RqDefs.forEach(def => {
 				let refs = this.RqRefs.get(def.id);
 				if (!refs || refs.length==0){
-					diags.push(
+					this.addDiagnostic(
+						uri,
 						Diagnostics.error(`Requirement ${def.id} does not have implementation`, def.idRange)
 					);
 				}
 			});
 			// $$Implements Analyzer.ERR_NOIMPL_TGT
-			this.checkRefsTargets(fileData, diags);
+			this.checkRefsTargets(fileData, uri);
 		}
 	}
 	
@@ -329,9 +334,8 @@ export default class ShalldnProj {
 			});
 		}
 
-		let diagnostics: Diagnostic[] = [];
 		if (!firstPass) // $$Implements Analyzer.ERR_NOIMPL_TGT
-			this.checkRefsTargets(fileData,diagnostics);
+			this.checkRefsTargets(fileData,uri);
 
 	}
 
@@ -360,10 +364,12 @@ export default class ShalldnProj {
 			let diagnostics = this.diagnostics.get(uri);
 			if (!diagnostics)
 				continue;
-			diagnostics.forEach(diag=>diag.promote());
+			if (this.showAllAsWarnings)
+				diagnostics.forEach(diag=>diag.demote());
+			else
+				diagnostics.forEach(diag => diag.promote());
 			this.connection.sendDiagnostics({ uri, diagnostics });
 		}
-		this.diagnostics.keys
 	}
 
 }
