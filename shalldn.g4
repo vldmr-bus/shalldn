@@ -30,13 +30,14 @@ def_rev: body = italiced_phrase '*(' subject = phrase ')*' ;
 phrase: plain_phrase|italiced_phrase|bolded_phrase|nota_bene|def_drct|def_rev;
 
 // $$Implements Parser.DOC_Subject
-title: '#'? phrase* subject = italiced_phrase WORD* ~'\n'? ;
-heading: '\n'*HASH+ phrase+ '\n';
+title: '#'? phrase* subject = italiced_phrase WORD* ul? ;
+hashes: HASH+;
+heading: '\n'*hashes phrase+ ul?;
 // $$Implements Parser.RQ_statement, Parser.ERR_No_RQ_ID, Parser.ERR_DUP_SHALL
-requirement: bolded_id '\n'* pre = phrase+ SHALL post = phrase+ ('.'|':');
+requirement: bolded_id '\n'* pre = phrase+ SHALL post = phrase+ ('.'|':') ul?;
 // $$Implements Parser.IMPLMNT
-implmnt: '\n'+(STAR)+'Implements' ((bolded_id (',' bolded_id)*) |bolded_phrase) sentence_stop? ;
-ul_element: '\n'+(STAR)+ sentence+ ;
-ul: (ul_element|implmnt)+;
+implmnt: (STAR)+'Implements' ((bolded_id (',' bolded_id)*) |bolded_phrase) sentence_stop? ;
+ul_element: (STAR)+ sentence+ ;
+ul: ('\n'+(ul_element|implmnt))+;
 sentence: phrase+ sentence_stop;
-document: '\n'* title (heading|requirement|sentence|(requirement|phrase ':')? ul|'\n'+)+ EOF;
+document: '\n'* title (heading|requirement|sentence|(phrase ':'|heading)? ul|'\n'+)+ EOF;

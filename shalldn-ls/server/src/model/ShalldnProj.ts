@@ -5,7 +5,7 @@ import * as fs from 'fs/promises';
 import * as rx  from 'rxjs';
 import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts';
 import { shalldnLexer } from '../antlr/shalldnLexer';
-import { HeadingContext, ImplmntContext, RequirementContext, SentenceContext, shalldnParser, TitleContext, UlContext, Ul_elementContext } from '../antlr/shalldnParser';
+import { DocumentContext, HeadingContext, ImplmntContext, RequirementContext, SentenceContext, shalldnParser, TitleContext, UlContext, Ul_elementContext } from '../antlr/shalldnParser';
 import { shalldnListener } from '../antlr/shalldnListener';
 import { Capabilities } from '../server';
 import { DefinitionParams, Diagnostic, DiagnosticSeverity, integer, Location, Range, _Connection } from 'vscode-languageserver';
@@ -25,9 +25,9 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	) { }
 
 	public subject = '';
-	private lastRq:RequirementContext | null = null;
-	private lastHeading:HeadingContext | TitleContext | null=null;
-	private headinStack:HeadingContext[]=[];
+//	private lastRq:RequirementContext | null = null;
+//	private lastHeading:HeadingContext | TitleContext | null=null;
+	private groupImplmentation:{level:integer,ids:string[]}[]=[];
 
 	getText(ctx: ParserRuleContext|undefined):string {
 		if (!ctx)
@@ -42,11 +42,12 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	exitRequirement(ctx:RequirementContext) {
 		let id = ctx.bolded_id()?.IDENTIFIER()?.text || '';
 		let range = Util.rangeOfContext(ctx);
+		let idRange = Util.rangeOfContext(ctx.bolded_id());
 		let def = {
 			id,
 			uri: this.uri,
 			range,
-			idRange: Util.rangeOfContext(ctx.bolded_id())
+			idRange
 		};
 		try {
 			this.proj.addRequirement(def);
@@ -62,38 +63,70 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		} catch (e: any) {
 			this.proj.addDiagnostic(this.uri,Diagnostics.error(e, def.idRange));
 		}
-		this.lastRq = ctx;
+		for (let _once of [1]) {
+			let ul = ctx.ul();
+			if (ul && ul.implmnt().length)
+				break;
+			if (this.groupImplmentation.length)
+				break;
+			// $$Implements Parser.WARN_RTNL
+			if (ul && ul.ul_element().some(e => 
+				e.sentence(0).text.startsWith('Rationale:'))) // $$Implements Parser.RTNL
+			{
+				this.proj.addDiagnostic(this.uri,
+					Diagnostics.warning(
+						`Requirement ${id} is justified only by its rationale and by none of higher level requirements`,
+						idRange
+					))
+				break;
+			}
+			// $$Implements Parser.ERR_NO_JSTFCTN
+			this.proj.addDiagnostic(this.uri,
+				Diagnostics.error(
+					`Requirement ${id} does not have any justification`,
+					idRange
+				));
+		}
 	}
 
 	exitTitle(ctx: TitleContext) {
 		this.subject = this.getText(ctx?._subject?.plain_phrase());
-		this.lastHeading = ctx;
 	}
 	
-	exitUl(ctx:UlContext) {
-		this.lastRq = null;
-		this.lastHeading = null;
-	}
-
 	enterImplmnt(ctx: ImplmntContext) {
+		// $$Implements Parser.IMPLMNT_INDVDL
+		let parentRq = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_requirement) ? <RequirementContext>ctx.parent.parent:undefined;
+		// $$Implements Parser.IMPLMNT_GRP
+		let parentTitle = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_title) ? <TitleContext>ctx.parent.parent : undefined;
+		let parentHeading = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_heading) ? <HeadingContext>ctx.parent.parent : undefined;
 		// $$Implements Parser.ERR_IMPLMNT
-		if (this.lastRq == null && this.lastHeading==null)
+		if (!(parentRq || parentHeading || parentTitle)) {
 			this.proj.addDiagnostic(
 				this.uri,
 				Diagnostics.error(
 				"Implementation link in the list that is not immidiately after requirement or heading", 
 				Util.rangeOfContext(ctx)
 			));
+			return;
+		}
 		let ids:string[]=[];
 		if (ctx.bolded_phrase())
 			ids.push(this.getText(ctx.bolded_phrase()?.plain_phrase()));
 		else
 			ctx.bolded_id().forEach(id => ids.push(id.IDENTIFIER()?.text||''));
-		this.proj.addRefs(this.uri,ctx, ids);
+		if (parentRq == null && (parentTitle || parentHeading) ) {
+			let level = (parentHeading)?parentHeading.hashes().childCount:1;
+			while (this.groupImplmentation.length && this.groupImplmentation[0].level>=level)
+				this.groupImplmentation.shift();
+			this.groupImplmentation.unshift({level,ids});
+		}
+		this.proj.addRefs(this.uri,parentRq||parentHeading||parentTitle||ctx, ctx, ids);
 	}
 
-	exitHeading(ctx:HeadingContext) {
-		this.lastHeading = ctx;
+	enterHeading(ctx:HeadingContext) {
+		let level = ctx.hashes().childCount;
+		while (this.groupImplmentation.length && this.groupImplmentation[0].level >= level)
+			this.groupImplmentation.shift();
 		let defs: ShalldnRqDef[]=[];
 		ctx.phrase().forEach(p=>{
 			// $$Implements Parser.INFRML_ID
@@ -118,6 +151,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			));
 		defs.forEach(d=>this.proj.addRequirement(d));
 	}
+
 }
 
 class FileData {
@@ -166,7 +200,7 @@ export default class ShalldnProj {
 			defs=[];
 			this.RqDefs.set(def.id,defs)
 		}
-		// $$Implements Parser.ERR_DUP_RQ_ID, Analyzer.ERR_DUP_RQ_ID
+		// $$Implements Parser.ERR_DUP_RQ_ID, Analyzer.ERR_DUP_RQ_ID, Editor.ERR_MULT_DEF
 		let multiple = defs.length>0;
 		defs.push(def);
 		if (multiple) 
@@ -174,12 +208,12 @@ export default class ShalldnProj {
 		return def;
 	}
 
-	public addRefs(uri: string, ctx: ImplmntContext, ids: string[]) {
+	public addRefs(uri: string, tgt: ParserRuleContext, clause: ParserRuleContext, ids: string[]) {
 		let fileData = this.Files.get(uri);
+		let tgtRange = Util.rangeOfContext(tgt);
+		let clauseRange = Util.rangeOfContext(clause);
 		ids.forEach(id=>{
-			let ref: ShalldnRqRef = {
-				uri: uri, id, range: Util.rangeOfContext(ctx)
-			}
+			let ref: ShalldnRqRef = {uri, id, tgtRange,clauseRange};
 			fileData?.RqRefs.push(ref);
 			let refs = this.RqRefs.get(ref.id);
 			if (!refs) {
@@ -224,7 +258,7 @@ export default class ShalldnProj {
 			if (!defs || defs.length==0) {
 				this.addDiagnostic(
 					uri,
-					Diagnostics.error(`Implementation of non-exisiting requirement ${ref.id}`, ref.range)
+					Diagnostics.error(`Implementation of non-exisiting requirement ${ref.id}`, ref.clauseRange)
 				);
 			}
 		});
@@ -273,6 +307,7 @@ export default class ShalldnProj {
 		let analyzer = new ShalldnProjectRqAnalyzer(uri, this);
 		let inputStream = CharStreams.fromString(text);
 		let lexer = new shalldnLexer(inputStream);
+		// $$Implements Editor.PRBLM_PARSER
 		lexer.addErrorListener(new LexerErrorListener(this.cpblts.DiagnRelated ? uri : "", d => this.addDiagnostic(uri,d)));
 		let tokenStream = new CommonTokenStream(lexer);
 		let parser = new shalldnParser(tokenStream);
@@ -321,9 +356,8 @@ export default class ShalldnProj {
 			m[1].split(',').forEach(s=>{
 				let id = s.trim();
 				let sp = line.search(id);
-				let ref: ShalldnRqRef = {
-					uri: uri, id, range: {start:{line:l,character:sp},end:{line:l,character:sp+id.length}}
-				}
+				let tgtRange:Range={start:{line:l,character:sp},end:{line:l,character:sp+id.length}};
+				let ref: ShalldnRqRef = {uri, id, tgtRange, clauseRange:tgtRange };
 				fileData?.RqRefs.push(ref);
 				let refs = this.RqRefs.get(ref.id);
 				if (!refs) {
@@ -353,7 +387,7 @@ export default class ShalldnProj {
 		let defs = this.RqRefs.get(id) || [];
 		return defs.map(def => <Location>{
 			uri: def.uri,
-			range: def.range
+			range: def.tgtRange
 		});
 	}
 

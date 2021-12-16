@@ -20,7 +20,7 @@ export class ShalldnDiagnostic implements Diagnostic {
 		return this;
 	}
 	public demote() {
-		this.severity = this.severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Error : DiagnosticSeverity.Information;
+		this.severity = this.severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : DiagnosticSeverity.Information;
 	}
 	public promote() {
 		this.severity = this.severity == DiagnosticSeverity.Warning ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning;
@@ -42,7 +42,7 @@ export namespace Diagnostics {
 	}
 
 	export function warning(message: string, start: Position|Range, end?: Position): ShalldnDiagnostic {
-		return diagnostic(DiagnosticSeverity.Information, message, start, end);
+		return diagnostic(DiagnosticSeverity.Warning, message, start, end);
 	}
 
 }

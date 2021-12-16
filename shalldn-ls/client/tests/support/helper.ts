@@ -33,13 +33,17 @@ export namespace helpers {
 	}
 
 	export const getDocUri = async (p: string) => {
-		let uri:vscode.Uri;
 		let uris=await vscode.workspace.findFiles(p);
 		return uris.length?uris[0]:undefined;
 	};
 
+	export async function getDocText(loc:vscode.Location) {
+		let doc = await vscode.workspace.openTextDocument(loc.uri);
+		return doc.getText(loc.range);
+	}
+
 	export async function enterText(text:string) {
-		let pos = doc.positionAt(Math.max(0, doc.getText().length - 1));
+		let pos = doc.positionAt(Math.max(0, doc.getText().length));
 		await editor.edit(eb => 
 			eb.insert(pos, text)
 		);
@@ -52,6 +56,34 @@ export namespace helpers {
 			doc.positionAt(doc.getText().length)
 		);
 		return editor.edit(eb => eb.replace(all, content));
+	}
+
+	function sanitizeSearch(line: string | RegExp) {
+		if (typeof (line) == 'string')
+			line = line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		return line;
+	}
+
+	export function getTextPosition(line:string|RegExp, word:string|RegExp) {
+		line = sanitizeSearch(line);
+		word = sanitizeSearch(word);
+		let text = doc.getText();
+		let pos = text.search(line);
+		if (pos<0)
+			throw 'Text not found in the document';
+		if (typeof(line)!='string') {
+			line = text.match(line)![0];
+		}
+		let wpos = line.search(word);
+		if (wpos<0)
+			throw 'Word not found in line';
+		if (typeof (word) != 'string') {
+			word = line.match(word)![0];
+		}
+		return new vscode.Range(
+			doc.positionAt(pos+wpos),
+			doc.positionAt(pos+wpos+word.length)
+		)
 	}
 
 	let global_id = 1;

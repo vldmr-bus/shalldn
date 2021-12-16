@@ -5,5 +5,6 @@
 	"editor.codeActionsOnSave": {
 		"source.fixAll.eslint": true
 	},
-	"terminal.integrated.defaultProfile.windows": "PowerShell"
+	"terminal.integrated.defaultProfile.windows": "PowerShell",
+	"cucumberautocomplete.steps": ["shalldn-ls/client/tests/support/*.ts"]
 }
