@@ -203,14 +203,15 @@ connection.onDefinition((params, cancellationToken) => {
 	return new Promise((resolve, reject) => {
 		const document = documents.get(params.textDocument.uri);
 		const p = params.position;
-		let line = document?.getText(Util.lineRangeOfPos(p)).trim();
-		if (!document || !line) {
+		let range = Util.lineRangeOfPos(p);
+		let text = document?.getText(range).trimEnd();
+		if (!document || !text) {
 			resolve([]);
 			return;
 		}
+		let tr = {text, range}
 
-		let id = line.substring(0,p.character).replace(/.*?([\w\.]*)$/, '$1')+
-			line.substring(p.character).replace(/^([\w\.]*).*?$/, '$1');
+		let id = Util.lineFragment(tr,p.character,/.*?([\w\.]*)$/,/^([\w\.]*).*?$/s);
 		let defs = project.findDefinition(id);
 		if (defs.length > 0 || !isRqDoc(document)) {
 			resolve(defs);
@@ -218,9 +219,13 @@ connection.onDefinition((params, cancellationToken) => {
 		}
 
 		// informal requirement definition
-		id = line.substring(0, p.character).replace(/^.*Implements\s+\*\*([^*]+)$/, '$1') +
-			line.substring(p.character).replace(/^([^*]*)\*\*\s*?$/, '$1');
-		resolve(project.findDefinition(id));
+		id = Util.lineFragment(tr, p.character,/^.*Implements\s+\*\*([^*]+)$/,/^([^*]*)\*\*\s*?$/);
+		defs = project.findDefinition(id);
+		if (defs.length > 0 || !isRqDoc(document)) {
+			resolve(defs);
+			return;
+		}
+
 	});
 });
 
@@ -228,24 +233,24 @@ connection.onReferences((params)=>{
 	return new Promise((resolve, reject) => {
 		const document = documents.get(params.textDocument.uri);
 		const p = params.position;
-		let line = document?.getText(Util.lineRangeOfPos(p)).trim()||'';
-		if (!document || !line) {
+		let range = Util.lineRangeOfPos(p);
+		let text = document?.getText(range).trimEnd()||'';
+		if (!document || !text) {
 			resolve([]);
 			return;
 		}
+		let tr = { text, range }
 
-		let id = line.substring(0,p.character).replace(/.*?([\w\.]*)$/, '$1')+
-			line.substring(p.character).replace(/^([\w\.]*).*?$/, '$1');
-		let refs = project.findReferences(id);
+		let id = Util.lineFragment(tr, p.character,/.*?([\w\.]*)$/, /^([\w\.]*).*?$/s);
+		let refs = project.findReferences(id.text);
 		if (refs.length > 0 || !isRqDoc(document)) {
 			resolve(refs);
 			return;
 		}
 
 		// informal requirement references
-		id = line.substring(0, p.character).replace(/^#+.*\*([^*]+)$/, '$1') +
-			line.substring(p.character).replace(/^([^*]*)\*.*$/, '$1');
-		resolve(project.findReferences(id));
+		id = Util.lineFragment(tr, p.character,/^#+.*\*([^*]+)$/,/^([^*]*)\*.*$/);
+		resolve(project.findReferences(id.text));
 	});
 
 })

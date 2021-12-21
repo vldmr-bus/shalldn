@@ -39,19 +39,19 @@ async function verifyProblem(this:Test, text:string){
 When(/list of definitions is obtained for the word "(\w+)" in following text:/,
 async function getDefinitions(this:Test,word:string,text:string){
 	let range = helpers.getTextPosition(text,word);
-	this.locations = (await vscode.commands.executeCommand(
+	this.locLinks = (await vscode.commands.executeCommand(
 		'vscode.executeDefinitionProvider',
 		this.docUri,
 		range.start
-	)) as vscode.Location[];
+	)) as Array<vscode.Location|vscode.LocationLink>;
 })
 
 Then(/the list shall contains definition in file "(.*)"/,
 async function checkLocation(this:Test,file:string,text:string) {
-	if (!this.locations)
+	if (!this.locLinks)
 		assert.fail('The test step does not have a list of locations')
-	let locations = this.locations.filter(async l=>
-		l.uri.toString().endsWith(file) &&
+	let locations = this.locLinks.filter(async l=>
+		(('uri'in l)?l.uri:l.targetUri).toString().endsWith(file) &&
 		text == await helpers.getDocText(l)
 	);
 	assert.equal(locations.length,1,`The file ${file} shall have definition "${text}"`);

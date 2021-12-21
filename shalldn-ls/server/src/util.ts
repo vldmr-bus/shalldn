@@ -27,4 +27,16 @@ export namespace Util {
 			}
 		}
 	}
+	export interface TextRange { text: string, range: Range }
+
+	export function lineFragment(tr:TextRange, pos:number, leftRE:RegExp,rightRE:RegExp)
+		:TextRange
+	{
+		let left = tr.text.substring(0, pos).replace(leftRE, '$1');
+		let text = left + tr.text.substring(pos).replace(rightRE, '$1');
+		let range = {...tr.range};
+		range.start.character = pos - left.length;
+		range.end.character = range.start.character+text.length;
+		return {text,range};
+	}
 }

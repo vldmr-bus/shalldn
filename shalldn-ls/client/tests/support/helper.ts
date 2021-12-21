@@ -37,9 +37,9 @@ export namespace helpers {
 		return uris.length?uris[0]:undefined;
 	};
 
-	export async function getDocText(loc:vscode.Location) {
-		let doc = await vscode.workspace.openTextDocument(loc.uri);
-		return doc.getText(loc.range);
+	export async function getDocText(l:vscode.Location|vscode.LocationLink) {
+		let doc = await vscode.workspace.openTextDocument(('uri' in l) ? l.uri : l.targetUri);
+		return doc.getText(('uri' in l) ? l.range : l.targetRange);
 	}
 
 	export async function enterText(text:string) {

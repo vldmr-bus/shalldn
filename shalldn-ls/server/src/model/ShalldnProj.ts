@@ -8,7 +8,7 @@ import { shalldnLexer } from '../antlr/shalldnLexer';
 import { DocumentContext, HeadingContext, ImplmntContext, RequirementContext, SentenceContext, shalldnParser, TitleContext, UlContext, Ul_elementContext } from '../antlr/shalldnParser';
 import { shalldnListener } from '../antlr/shalldnListener';
 import { Capabilities } from '../server';
-import { DefinitionParams, Diagnostic, DiagnosticSeverity, integer, Location, Range, _Connection } from 'vscode-languageserver';
+import { DefinitionParams, Diagnostic, DiagnosticSeverity, integer, Location, LocationLink, Position, Range, _Connection } from 'vscode-languageserver';
 import ShalldnRqDef from './ShalldnRqDef';
 import { Util } from '../util';
 import LexerErrorListener from '../LexerErrorListener';
@@ -25,8 +25,6 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	) { }
 
 	public subject = '';
-//	private lastRq:RequirementContext | null = null;
-//	private lastHeading:HeadingContext | TitleContext | null=null;
 	private groupImplmentation:{level:integer,ids:string[]}[]=[];
 
 	getText(ctx: ParserRuleContext|undefined):string {
@@ -374,11 +372,13 @@ export default class ShalldnProj {
 	}
 
 	// $$Implements Analyzer.RQS
-	public findDefinition(id:string): Location[] {
-		let defs = this.RqDefs.get(id)||[];
-		return defs.map(def => <Location>{
-			uri: def.uri,
-			range: def.range
+	public findDefinition(tr:Util.TextRange): LocationLink[] {
+		let defs = this.RqDefs.get(tr.text)||[];
+		return defs.map(def => <LocationLink>{
+			targetUri: def.uri,
+			targetRange: def.range,
+			targetSelectionRange: def.range,
+			originSelectionRange: tr.range
 		});
 	}
 
