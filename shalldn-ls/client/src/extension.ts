@@ -1,25 +1,27 @@
 import * as path from 'path';
 import { existsSync, readFileSync} from 'fs';
 import ignore from 'ignore';
-import { workspace, ExtensionContext, StatusBarItem, StatusBarAlignment, window, commands, RelativePattern } from 'vscode';
+import * as vscode from 'vscode';
 
 import {
 	LanguageClient,
 	LanguageClientOptions,
+	RequestType,
 	ServerOptions,
 	TransportKind
 } from 'vscode-languageclient/node';
 
 let client: LanguageClient;
-let statusBarItem: StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left);;
+let statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+statusBarItem.hide();
 
 function showIndexingStatusBarMessage() {
-	statusBarItem.text = "$(zap) Shalldn indexing...";
+	statusBarItem.text = "$(zap) Shalldn working...";
 	statusBarItem.tooltip = "Shalldn language server is analyzing files in the workspace";
 	statusBarItem.show();
 }
 
-export function activate(context: ExtensionContext) {
+export function activate(context: vscode.ExtensionContext) {
 	const serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')
 	);
@@ -46,8 +48,8 @@ export function activate(context: ExtensionContext) {
 		],
 		synchronize: {
 			// Notify the server about file changes to '.clientrc files contained in the workspace
-			fileEvents: (workspace.workspaceFolders || [])
-				.map(f => workspace.createFileSystemWatcher(new RelativePattern(f, '**/*')))
+			fileEvents: (vscode.workspace.workspaceFolders || [])
+				.map(f => vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(f, '**/*')))
 		}
 	};
 
@@ -61,7 +63,7 @@ export function activate(context: ExtensionContext) {
 
 	// $$Implements Editor.ERR_DEMOTE
 	context.subscriptions.push(
-		commands.registerCommand('shalldn.toggleErrWarn', () => {
+		vscode.commands.registerCommand('shalldn.toggleErrWarn', () => {
 			client.sendRequest("toggleErrWarn",true);
 		})
 	);
@@ -75,12 +77,12 @@ export function activate(context: ExtensionContext) {
 	}
 
 	const ig = ignore();
-	workspace.findFiles('**/.gitignore').then(uris=>{
+	vscode.workspace.findFiles('**/.gitignore').then(uris=>{
 		// $$Implements Analyzer.GITIGNORE
 		uris.forEach(uri=>{
 			if (existsSync(uri.fsPath)) {
 				let txt = readFileSync(uri.fsPath).toString()
-				let pfx = workspace.asRelativePath(uri).replace(/\/?.gitignore$/,'');
+				let pfx = vscode.workspace.asRelativePath(uri).replace(/\/?.gitignore$/,'');
 				if (pfx)
 					txt = txt.replace(/\r/g,'').replace(/^([^#].*)$/gm,`${pfx}$1`);
 				ig.add(txt)
@@ -88,17 +90,24 @@ export function activate(context: ExtensionContext) {
 		})
 		let include = `**/*.{${files.include.join(',') || '*'}}`;
 		let exlude = `**/*.{${files.exclude.join(',') || undefined}}`;
-		return workspace.findFiles(include,exlude);
+		return vscode.workspace.findFiles(include,exlude);
 	})
 	.then(files => {
 		// $$Implements Analyzer.PROJECT
 		var uris: string[] = [];
 		files.forEach(uri => {
-			if (!ig.ignores(workspace.asRelativePath(uri.fsPath)))
+			if (!ig.ignores(vscode.workspace.asRelativePath(uri.fsPath)))
 				uris.push(uri.toString());
 		});
 
 		client.onReady().then(() => {
+			client.onRequest(new RequestType('analyzeStart'), ()=>{
+				showIndexingStatusBarMessage();				
+			})
+			client.onRequest(new RequestType('analyzeDone'), () => {
+				statusBarItem.hide();
+			})
+
 			client.sendRequest("analyzeFiles", {
 				files: uris,
 			});

@@ -28,7 +28,7 @@ import { Util } from './util';
 import ShalldnProj from './model/ShalldnProj';
 import { URI } from 'vscode-uri';
 
-import {from, mergeMap} from 'rxjs';
+import {from, mergeMap, Observer} from 'rxjs';
 import * as fs from 'fs/promises';
 
 var debug = /--inspect/.test(process.execArgv.join(' '))
@@ -150,13 +150,19 @@ documents.onDidClose(e => {
 	documentSettings.delete(e.document.uri);
 });
 
+const tellClient: Partial<Observer<any>> = {
+	complete() {
+		connection.sendRequest("analyzeDone");
+	}
+}
+
 // $$Implements Analyzer.MODS
 documents.onDidChangeContent(async change => {
 	let linked = project.getLinked(change.document.uri);
 	await validateTextDocument(change.document);
 	for (let l of project.getLinked(change.document.uri))
 		linked.add(l);
-	analyzeFiles([...linked]).subscribe();
+	analyzeFiles([...linked]).subscribe(tellClient);
 });
 
 
@@ -190,7 +196,8 @@ connection.onDidChangeWatchedFiles(_change => {
 	analyzeFiles(changed).subscribe({
 		complete() {
 			changed.forEach(uri => { linked = new Set([...linked, ...project.getLinked(uri)]); })
-			analyzeFiles([...linked]).subscribe();
+			analyzeFiles([...linked])
+				.subscribe(tellClient);
 		}
 	})
 });
@@ -274,6 +281,7 @@ connection.onReferences((params)=>{
 
 // $$Implements Analyzer.PROJECT
 function analyzeFiles(files: string[]) {
+	connection.sendRequest("analyzeStart");
 	return from(files)
 	.pipe(
 		mergeMap(uri => {
@@ -301,7 +309,7 @@ connection.onRequest(analyzeFilesRequest, (data) => {
 	.subscribe({
 		complete() {
 			analyzeFiles(data.files.filter(p=>/.*\.shalldn$/.test(p)))
-			.subscribe();
+			.subscribe(tellClient);
 		}
 	});
 });
