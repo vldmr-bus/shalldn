@@ -5,3 +5,4 @@ client/server
 .idea
 .antlr
 shalldn-ls/server/src/antlr
+shalldn-ls/testFixture

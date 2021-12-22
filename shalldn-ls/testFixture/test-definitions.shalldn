@@ -1,0 +1,40 @@
+# Document with tests for term *definition*
+
+## Definitions
+
+### Term 1
+The first term in definitions section.
+
+#### Not definition
+This is not definition by itself, because this is subsection of Definition section. But it can have reference to *term 1* definition.
+
+### Term 2
+The second term in definitions section.
+
+## End of definitions
+We can reference *term 3* which is defined later.
+
+###  Term 2
+This section does not have error about multiple definitions of *term 2*, because it is not a definition.
+
+### Inline definitions
+Here is an example of direct inline definition: *DID* *(i.e. Direct Inline Definition)*.
+
+Here is reference to *DID*.
+
+Here is an example of *Reverse Inline Definition* *(RID)*. 
+
+Here is reference to *RID*.
+
+Here is an example of Implicit Inline Definition *IIB* *(n.b.)*.
+
+Here is reference to _IIB_.
+
+### Definitions
+Another section of definitions.
+
+####   Term 2
+The title of this section is marked with error because it is duplicate definition of *term 2*.
+
+#### Term 3
+The third term in second definitions section.

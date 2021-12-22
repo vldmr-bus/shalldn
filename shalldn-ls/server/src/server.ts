@@ -199,6 +199,7 @@ function isRqDoc(doc:TextDocument):boolean {
 	return doc.languageId == 'shalldn' || doc.languageId == 'markdown' && /\.shalldn$/.test(doc.uri);
 }
 
+// $$Implements Editor.NAV_RQ_DEF
 connection.onDefinition((params, cancellationToken) => {
 	return new Promise((resolve, reject) => {
 		const document = documents.get(params.textDocument.uri);
@@ -212,23 +213,35 @@ connection.onDefinition((params, cancellationToken) => {
 		let tr = {text, range}
 
 		let id = Util.lineFragment(tr,p.character,/.*?([\w\.]*)$/,/^([\w\.]*).*?$/s);
-		let defs = project.findDefinition(id);
-		if (defs.length > 0 || !isRqDoc(document)) {
-			resolve(defs);
-			return;
+		if (id) {
+			let defs = project.findDefinition(id);
+			if (defs.length > 0 || !isRqDoc(document)) {
+				resolve(defs);
+				return;
+			}
 		}
 
 		// informal requirement definition
 		id = Util.lineFragment(tr, p.character,/^.*Implements\s+\*\*([^*]+)$/,/^([^*]*)\*\*\s*?$/);
-		defs = project.findDefinition(id);
-		if (defs.length > 0 || !isRqDoc(document)) {
-			resolve(defs);
-			return;
+		if (id) {
+			let defs = project.findDefinition(id);
+			if (defs.length > 0 || !isRqDoc(document)) {
+				resolve(defs);
+				return;
+			}
 		}
 
+		// term definitions
+		id = Util.lineFragment(tr, p.character,/\*+([^*]*)$/,/^([^*]*)\*+/s);
+		if (!id)
+			id = Util.lineFragment(tr, p.character,/_+([^*_]*)$/, /^([^*_]*)_+/s);
+		if (id)
+			resolve(project.findTerms(id));
+		resolve(null);
 	});
 });
 
+// $$Implements Editor.NAV_IMPL
 connection.onReferences((params)=>{
 	return new Promise((resolve, reject) => {
 		const document = documents.get(params.textDocument.uri);
@@ -242,15 +255,19 @@ connection.onReferences((params)=>{
 		let tr = { text, range }
 
 		let id = Util.lineFragment(tr, p.character,/.*?([\w\.]*)$/, /^([\w\.]*).*?$/s);
-		let refs = project.findReferences(id.text);
-		if (refs.length > 0 || !isRqDoc(document)) {
-			resolve(refs);
-			return;
+		if (id) {
+			let refs = project.findReferences(id.text);
+			if (refs.length > 0 || !isRqDoc(document)) {
+				resolve(refs);
+				return;
+			}
 		}
 
 		// informal requirement references
 		id = Util.lineFragment(tr, p.character,/^#+.*\*([^*]+)$/,/^([^*]*)\*.*$/);
-		resolve(project.findReferences(id.text));
+		if (id)
+			resolve(project.findReferences(id.text));
+		resolve(null);
 	});
 
 })

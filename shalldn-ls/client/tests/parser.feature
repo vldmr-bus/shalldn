@@ -1,25 +1,25 @@
 Feature: Parser
 
 	Scenario: Parser.IMPLMNT_GRP uplink
-	# verify uplink from group implementation clause
+	# verify uplink from group *implementation clause*
 	Given the test file named "tests.shalldn" is opened
 	When list of definitions is obtained for the word "informal" in following text:
 	"""
 	* Implements **section of informal requirements**
 	"""
-	Then the list shall contains definition in file "informal.shalldn" with text:
+	Then the list shall contains definition in file "test-informal.shalldn" with text:
 	"""
 	section of informal requirements
 	"""
 
 	Scenario: Parser.IMPLMNT_INDVDL uplink
-	# verify uplink from individual implementation clause
+	# verify uplink from individual *implementation clause*
 	Given the test file named "tests.shalldn" is opened
 	When list of definitions is obtained for the word "informal" in following text:
 	"""
 	* Implements **sub-section of informal requirements**
 	"""
-	Then the list shall contains definition in file "informal.shalldn" with text:
+	Then the list shall contains definition in file "test-informal.shalldn" with text:
 	"""
 	sub-section of informal requirements
 	"""

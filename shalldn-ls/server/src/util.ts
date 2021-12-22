@@ -27,13 +27,32 @@ export namespace Util {
 			}
 		}
 	}
+	export function nextLine(range:Range) {
+		return {
+			start: {
+				line: range.end.line+1,
+				character: 0
+			},
+			end: {
+				line: range.end.line+1,
+				character: Number.MAX_SAFE_INTEGER
+			}
+		}
+	}
+
 	export interface TextRange { text: string, range: Range }
 
 	export function lineFragment(tr:TextRange, pos:number, leftRE:RegExp,rightRE:RegExp)
-		:TextRange
+		:TextRange|null
 	{
-		let left = tr.text.substring(0, pos).replace(leftRE, '$1');
-		let text = left + tr.text.substring(pos).replace(rightRE, '$1');
+		let lm = tr.text.substring(0, pos).match(leftRE);
+		if (!lm)
+			return null;
+		let left = lm[1];
+		let rm = tr.text.substring(pos).match(rightRE);
+		if (!rm)
+			return null;
+		let text = left + rm[1];
 		let range = {...tr.range};
 		range.start.character = pos - left.length;
 		range.end.character = range.start.character+text.length;

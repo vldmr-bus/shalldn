@@ -42,6 +42,10 @@ export namespace helpers {
 		return doc.getText(('uri' in l) ? l.range : l.targetRange);
 	}
 
+	export function getText(r:vscode.Range) {
+		return doc.getText(r);
+	}
+
 	export async function enterText(text:string) {
 		let pos = doc.positionAt(Math.max(0, doc.getText().length));
 		await editor.edit(eb => 
@@ -62,6 +66,14 @@ export namespace helpers {
 		if (typeof (line) == 'string')
 			line = line.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 		return line;
+	}
+
+	export function midRange(range:vscode.Range) {
+		let pos:vscode.Position = new vscode.Position(
+			range.start.line + Math.floor(Math.abs(range.end.line - range.start.line)/2),
+			range.start.character + Math.floor(Math.abs(range.end.character - range.start.character) / 2)
+		);
+		return pos;
 	}
 
 	export function getTextPosition(line:string|RegExp, word:string|RegExp) {

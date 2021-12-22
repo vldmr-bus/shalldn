@@ -5,7 +5,7 @@ import * as fs from 'fs/promises';
 import * as rx  from 'rxjs';
 import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts';
 import { shalldnLexer } from '../antlr/shalldnLexer';
-import { DocumentContext, HeadingContext, ImplmntContext, RequirementContext, SentenceContext, shalldnParser, TitleContext, UlContext, Ul_elementContext } from '../antlr/shalldnParser';
+import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, SentenceContext, shalldnParser, TitleContext, UlContext, Ul_elementContext } from '../antlr/shalldnParser';
 import { shalldnListener } from '../antlr/shalldnListener';
 import { Capabilities } from '../server';
 import { DefinitionParams, Diagnostic, DiagnosticSeverity, integer, Location, LocationLink, Position, Range, _Connection } from 'vscode-languageserver';
@@ -16,8 +16,8 @@ import ParseErrorListener from '../ParseErrorListener';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
 import { ParseTreeListener } from 'antlr4ts/tree/ParseTreeListener';
 import { Diagnostics, ShalldnDiagnostic } from '../Diagnostics';
-import { URI } from 'vscode-uri';
 import { Interval } from 'antlr4ts/misc/Interval';
+import ShalldnTermDef from './ShalldnTermDef';
 class ShalldnProjectRqAnalyzer implements shalldnListener {
 	constructor(
 		private uri:string,
@@ -26,6 +26,8 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 
 	public subject = '';
 	private groupImplmentation:{level:integer,ids:string[]}[]=[];
+	private defSectLevel:integer|undefined;
+	private currentTermDef: ShalldnTermDef|undefined;
 
 	getText(ctx: ParserRuleContext|undefined):string {
 		if (!ctx)
@@ -102,7 +104,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			this.proj.addDiagnostic(
 				this.uri,
 				Diagnostics.error(
-				"Implementation link in the list that is not immidiately after requirement or heading", 
+				"Implementation clause in the list that is not immidiately after requirement or heading", 
 				Util.rangeOfContext(ctx)
 			));
 			return;
@@ -121,14 +123,116 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		this.proj.addRefs(this.uri,parentRq||parentHeading||parentTitle||ctx, ctx, ids);
 	}
 
+	// $$Implements Parsers.INLN_DEF_DRCT
+	enterDef_drct(ctx: Def_drctContext) {
+		let def: ShalldnTermDef = {
+			uri: this.uri,
+			subj: this.getText(ctx._subject.plain_phrase()),
+			bodyRange: Util.rangeOfContext(ctx._body),
+			range: Util.rangeOfContext(ctx._subject)
+		};
+		this.proj.addTerm(def);
+	}
+
+	// $$Implements Parsers.INLN_DEF_REV
+	enterDef_rev(ctx: Def_revContext) {
+		let body = ctx._body.plain_phrase();
+		if (!body) {
+			this.proj.addDiagnostic(
+				this.uri,
+				Diagnostics.error(
+					"Reverse inline definition without body",
+					Util.rangeOfContext(ctx)
+				));
+			return;
+		}
+		let def: ShalldnTermDef = {
+			uri: this.uri,
+			subj: this.getText(ctx._subject),
+			bodyRange: Util.rangeOfContext(body),
+			range: Util.rangeOfContext(ctx._subject)
+		};
+		this.proj.addTerm(def);
+	}
+
+	// $$Implements Parsers.INLN_DEF_IMP
+	enterNota_bene(ctx: Nota_beneContext) {
+		let subj = ctx.italiced_phrase().plain_phrase();
+		if (!subj) {
+			this.proj.addDiagnostic(
+				this.uri,
+				Diagnostics.error(
+					"Empty subject in implicit inline definition",
+					Util.rangeOfContext(ctx)
+				));
+			return;
+		}
+
+		let parent = ctx.parent;
+		while (parent && parent?.ruleIndex != shalldnParser.RULE_requirement && parent?.ruleIndex != shalldnParser.RULE_sentence)
+			parent = parent?.parent
+
+		if (!parent) {
+			this.proj.addDiagnostic(
+				this.uri,
+				Diagnostics.error(
+					"Implicit inline definition is not within a sentence",
+					Util.rangeOfContext(ctx)
+				));
+			return;
+		}
+
+		let def: ShalldnTermDef = {
+			uri: this.uri,
+			subj: this.getText(subj),
+			bodyRange: Util.rangeOfContext(parent),
+			range: Util.rangeOfContext(subj)
+		};
+
+		this.proj.addTerm(def);
+	}
+
+	completeTermDef(endPos:Position) {
+		if (!this.currentTermDef)
+			return;
+		this.currentTermDef.bodyRange.end = endPos;
+		this.proj.addTerm(this.currentTermDef);
+		this.currentTermDef = undefined;
+	}
+
 	enterHeading(ctx:HeadingContext) {
+		if (this.currentTermDef) {
+			let range = Util.rangeOfContext(ctx);
+			this.completeTermDef(range.start);
+		}
 		let level = ctx.hashes().childCount;
+		if (this.defSectLevel&&this.defSectLevel >= level)
+			this.defSectLevel = undefined;
+
 		while (this.groupImplmentation.length && this.groupImplmentation[0].level >= level)
 			this.groupImplmentation.shift();
+
+		if (ctx.phrase().text == 'Definitions') {
+			this.defSectLevel = level;
+			return;
+		}
+
+		// $$Implements Parser.DEF_SECT
+		if (level - 1 == this.defSectLevel) {
+			let range = Util.rangeOfContext(ctx);
+			this.currentTermDef = {
+				subj: this.getText(ctx.phrase()),
+				range: Util.rangeOfContext(ctx.phrase()),
+				bodyRange: Util.nextLine(range),
+				uri:this.uri
+			}
+			return;
+		}
+		
 		let defs: ShalldnRqDef[]=[];
-		ctx.phrase().forEach(p=>{
+		ctx.phrase().italiced_phrase().forEach(p=>{
 			// $$Implements Parser.INFRML_ID
-			let id = p.italiced_phrase()?.plain_phrase();
+			let id = p.plain_phrase();
 			if (!id)
 				return;
 			defs.push({
@@ -150,11 +254,16 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		defs.forEach(d=>this.proj.addRequirement(d));
 	}
 
+	exitDocument(ctx: DocumentContext) {
+		this.completeTermDef({line:ctx.stop!.line, character:ctx.stop!.charPositionInLine});
+	}
+
 }
 
 class FileData {
 	public RqRefs: ShalldnRqRef[] = [];
 	public RqDefs: ShalldnRqDef[] = [];
+	public TermDefs: ShalldnTermDef[]|undefined;
 }
 
 export default class ShalldnProj {
@@ -165,6 +274,7 @@ export default class ShalldnProj {
 
 	private RqDefs: Map<string,ShalldnRqDef[]> = new Map();
 	private RqRefs: Map<string, ShalldnRqRef[]> = new Map();
+	private TermDefs: Map<string, ShalldnTermDef[]> = new Map();
 	private Files:Map<string,FileData> = new Map();
 	public diagnostics: Map<string,ShalldnDiagnostic[]> = new Map();
 	private showAllAsWarnings = false;
@@ -190,8 +300,13 @@ export default class ShalldnProj {
 
 	public addRequirement(def: ShalldnRqDef) {
 		let fileData = this.Files.get(def.uri);
-		if (!def.id)
-			throw `Requirement without identifier`;
+		if (!def.id) {
+			this.addDiagnostic(
+				def.uri,
+				Diagnostics.error(`Requirement without identifier`, def.range)
+			);
+			return;
+		}
 		fileData?.RqDefs.push(def);
 		let defs = this.RqDefs.get(def.id);
 		if (!defs) {
@@ -201,8 +316,12 @@ export default class ShalldnProj {
 		// $$Implements Parser.ERR_DUP_RQ_ID, Analyzer.ERR_DUP_RQ_ID, Editor.ERR_MULT_DEF
 		let multiple = defs.length>0;
 		defs.push(def);
-		if (multiple) 
-			throw `Requirement with id ${def.id} already exists`;
+		if (multiple) {
+			this.addDiagnostic(
+				def.uri,
+				Diagnostics.error(`Requirement with id ${def.id} already exists`, def.range)
+			);
+		}
 		return def;
 	}
 
@@ -222,6 +341,40 @@ export default class ShalldnProj {
 		});
 	}
 
+	public addTerm(def: ShalldnTermDef) {
+		let fileData = this.Files.get(def.uri);
+		if (!def.subj) {
+			this.addDiagnostic(
+				def.uri,
+				Diagnostics.error(`Definition without subject`, def.range)
+			);
+			return;
+		}
+		// $$Implements Analyzer.DEFS_CASE
+		if (def.subj.search(/[a-z]/) >= 0)
+			def.subj = def.subj.toLowerCase();
+		if (!fileData!.TermDefs)
+			fileData!.TermDefs=[];
+		fileData!.TermDefs.push(def);
+		let defs = this.TermDefs.get(def.subj);
+		if (!defs) {
+			defs = [];
+			this.TermDefs.set(def.subj, defs)
+		}
+
+		let multiple = defs.length > 0;
+		defs.push(def);
+
+		// $$Implements Analyzer.ERR_DEFS_DUPS
+		if (multiple) {
+			this.addDiagnostic(
+				def.uri,
+				Diagnostics.error(`The term "${def.subj}" has multiple definitions`, def.range)
+			);
+		}
+		return def;
+	}
+
 	cleanFileData(fileData:FileData|undefined) {
 		if (!fileData)
 			return;
@@ -239,6 +392,14 @@ export default class ShalldnProj {
 			let newrefs = refs.filter(d => d.uri != ref.uri);
 			this.RqRefs.set(ref.id, newrefs);
 		});
+		(fileData?.TermDefs || []).forEach(def => {
+			let defs = this.TermDefs.get(def.subj);
+			if (!defs)
+				return;
+			let newdefs = defs.filter(d => d.uri != def.uri);
+			this.TermDefs.set(def.subj, newdefs);
+		});
+
 	}
 
 	public remove(uri:string) {
@@ -388,6 +549,20 @@ export default class ShalldnProj {
 		return defs.map(def => <Location>{
 			uri: def.uri,
 			range: def.tgtRange
+		});
+	}
+
+	public findTerms(tr: Util.TextRange): LocationLink[] {
+		let subj = tr.text;
+		// $$Implements Analyzer.DEFS_CASE
+		if (subj.search(/[a-z]/)>=0)
+			subj=subj.toLowerCase();
+		let defs = this.TermDefs.get(tr.text)||[];
+		return defs.map(def => <LocationLink>{
+			targetUri: def.uri,
+			targetRange: def.bodyRange,
+			targetSelectionRange: def.range,
+			originSelectionRange: tr.range
 		});
 	}
 

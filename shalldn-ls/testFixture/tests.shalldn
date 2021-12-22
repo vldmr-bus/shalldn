@@ -4,15 +4,15 @@
 * Implements **section of informal requirements**
 
 **Test.Parser.IMPLMNT_GRP.Link**
-The implementation clause at heading of the section containing this requirement **shall** be linked to the heading in the document "informal.shalldn".
+The *implementation clause* at heading of the section containing this requirement **shall** be linked to the heading in the document "test-informal.shalldn".
 
 ### Sub-section is still included in group implementation
 **Test.Parser.IMPLMNT_GRP.References**
-All requirements in the same section as this requirement **shall** be included in the list of references for the heading "A *section of informal requirements*" in the document "informal.shalldn".
+All requirements in the same section as this requirement **shall** be included in the list of references for the heading "A *section of informal requirements*" in the document "test-informal.shalldn".
 
 ## Group implementation ends here
 **Test.Parser.IMPLMNT_INDVDL**
-The implementation clause of this requirement **shall** have a link to the section in the document "informal.shalldn".
+The *implementation clause* of this requirement **shall** have a link to the section in the document "test-informal.shalldn".
 * Implements **sub-section of informal requirements**
 
 **Test.Parser.WARN_RTNL**

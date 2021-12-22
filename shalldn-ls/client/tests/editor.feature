@@ -26,7 +26,7 @@ Feature: Editor
 
     @discard_changes
     Scenario: Editor.ERR_NO_IMPLMNT_TGT with typing
-        # Typing in implementation clause for unique ID generates "Non existent requirement" error
+        # Typing in *implementation clause* for unique ID generates "Non existent requirement" error
         Given the test file named "tests.shalldn" is opened
         When the text below is appended to the end of the file
             """

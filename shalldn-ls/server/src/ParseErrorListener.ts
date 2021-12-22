@@ -9,7 +9,7 @@ export default class ParseErrorListener implements ParserErrorListener {
 
 	syntaxError<T extends Token>(recognizer: Recognizer<T, any>, offendingSymbol: T | undefined, line: number, charPositionInLine: number, msg: string, e: RecognitionException | undefined): void {
 		line = line - 1;
-		const diagnostic = Diagnostics.error(msg,
+		const diagnostic = Diagnostics.error("Syntax error",
 			{ line, character: charPositionInLine },
 			{ line, character: charPositionInLine + (offendingSymbol?.text?.length || 0) }
 		);
