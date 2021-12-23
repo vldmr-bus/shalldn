@@ -33,7 +33,7 @@ The parser **shall** indicate error condition when a heading contain multiple it
 
 ## Justification of requirements
 **Parser.IMPLMNT**  
-The parser **shall** recognize an unordered list item as a *implementation clause* *(n.b.)* when its text is the word "Implements" immediately followed by a bolded phrase or a sequence of comma separated list of *separately bolded* *identifier*s.
+The parser **shall** recognize an unordered list item as a implementation clause when its text is the word "Implements" immediately followed by a bolded phrase or a sequence of comma separated list of *separately bolded* *identifier*s.
 
 **Parser.IMPLMNT_GRP**  
 The parser **shall** recognize an *implementation clause* as a *group implementation clause* *(n.b.)* when it belongs to a list immediately following a title or heading.

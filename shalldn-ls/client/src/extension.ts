@@ -10,6 +10,8 @@ import {
 	ServerOptions,
 	TransportKind
 } from 'vscode-languageclient/node';
+import { DictTreeDataProvider } from './dictTreeDataProvider';
+import ShalldnTermDef from './ShalldnTermDef';
 
 let client: LanguageClient;
 let statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
@@ -21,7 +23,18 @@ function showIndexingStatusBarMessage() {
 	statusBarItem.show();
 }
 
+const dictTreeDataProvider = new DictTreeDataProvider();
+
 export function activate(context: vscode.ExtensionContext) {
+	vscode.window.registerTreeDataProvider('shalldnDictionary', dictTreeDataProvider);
+
+	vscode.commands.registerCommand('shalldn.dict.reveal', (def: ShalldnTermDef) => 
+	{
+		vscode.window.showTextDocument(vscode.Uri.parse(def.uri,),{
+			selection:def.range
+		})
+	});
+
 	const serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')
 	);
@@ -104,8 +117,10 @@ export function activate(context: vscode.ExtensionContext) {
 			client.onRequest(new RequestType('analyzeStart'), ()=>{
 				showIndexingStatusBarMessage();				
 			})
-			client.onRequest(new RequestType('analyzeDone'), () => {
+			client.onRequest(new RequestType('analyzeDone'), (terms:string) => {
 				statusBarItem.hide();
+				if (terms)
+					dictTreeDataProvider.setItems(JSON.parse(terms));
 			})
 
 			client.sendRequest("analyzeFiles", {

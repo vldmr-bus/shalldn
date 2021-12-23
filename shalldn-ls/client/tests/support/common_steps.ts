@@ -41,7 +41,7 @@ async function verifyProblem(this:Test, words:string|undefined, text:string){
 })
 
 When(/list of definitions is obtained for the word "(\w+)" in following text:/,
-{ timeout: -1 },
+//{ timeout: -1 },
 async function getDefinitions(this:Test,word:string,text:string){
 	let range = helpers.getTextPosition(text,word);
 	this.locLinks = (await vscode.commands.executeCommand(

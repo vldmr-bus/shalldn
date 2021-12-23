@@ -25,11 +25,12 @@ import {
 
 import { Diagnostics } from './Diagnostics';
 import { Util } from './util';
-import ShalldnProj from './model/ShalldnProj';
+import ShalldnProj from './ShalldnProj';
 import { URI } from 'vscode-uri';
 
 import {from, mergeMap, Observer} from 'rxjs';
 import * as fs from 'fs/promises';
+import ShalldnTermDef from './model/ShalldnTermDef';
 
 var debug = /--inspect/.test(process.execArgv.join(' '))
 
@@ -150,9 +151,15 @@ documents.onDidClose(e => {
 	documentSettings.delete(e.document.uri);
 });
 
+let termsCache: string;
 const tellClient: Partial<Observer<any>> = {
 	complete() {
-		connection.sendRequest("analyzeDone");
+		let terms = JSON.stringify(project.getAllTerms());
+		if (terms != termsCache)
+			termsCache = terms;
+		else
+			terms='';
+		connection.sendRequest("analyzeDone",terms);
 	}
 }
 

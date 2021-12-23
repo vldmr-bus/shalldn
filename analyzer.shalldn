@@ -12,10 +12,10 @@ An address of a contiguous fragment of text consisting of *character position* o
 ### Text reference
 Address of a text fragment in a project file consisting of the file path relative to the project root and the *text range address* of the fragment.
 
-### *Implementation clause*
+### Implementation clause
 Either:
-* group *implementation clause*;
-* individual *implementation clause*;
+* *group implementation clause*;
+* *individual implementation clause*;
 * inline comment *implementation clause*;
 
 

@@ -4,7 +4,7 @@
 	"description": "Shalldn requirements language support",
 	"author": "Vladimir Avdonin",
 	"license": "MIT",
-	"version": "0.0.6",
+	"version": "0.0.7",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/vldmr-bus/shalldn"
@@ -51,8 +51,38 @@
 				"command": "shalldn.toggleErrWarn",
 				"title": "Toggle showing errors as warnings",
 				"category": "Shalldn"
+			},
+			{
+				"command": "shalldn.dict.reveal",
+				"title": "Reveal",
+				"icon": "$(symbol-reference)"
 			}
 		],
+		"menus": {
+			"view/item/context": [
+				{
+					"when": "view == shalldnDictionary && viewItem == dictItem",
+					"command": "shalldn.dict.reveal",
+					"group": "inline"
+				}
+			]
+		},
+		"viewsContainers": {
+			"activitybar": [{
+				"id": "shalldn-explorer",
+				"title": "Shalldn Explorer",
+				"icon": "image/Shalldn-24x24.png"
+			}]
+		},
+		"views": {
+			"shalldn-explorer": [
+				{
+					"id": "shalldnDictionary",
+					"name": "Dictionary",
+					"icon": "image/dict.svg"
+				}
+			]
+		},
 		"configuration": {
 			"type": "object",
 			"title": "Shalldn configuration",

@@ -1,23 +1,23 @@
-import ShalldnRqRef from './ShalldnRqRef';
+import ShalldnRqRef from './model/ShalldnRqRef';
 
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as rx  from 'rxjs';
 import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts';
-import { shalldnLexer } from '../antlr/shalldnLexer';
-import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, SentenceContext, shalldnParser, TitleContext, UlContext, Ul_elementContext } from '../antlr/shalldnParser';
-import { shalldnListener } from '../antlr/shalldnListener';
-import { Capabilities } from '../server';
+import { shalldnLexer } from './antlr/shalldnLexer';
+import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, SentenceContext, shalldnParser, TitleContext, UlContext, Ul_elementContext } from './antlr/shalldnParser';
+import { shalldnListener } from './antlr/shalldnListener';
+import { Capabilities } from './server';
 import { DefinitionParams, Diagnostic, DiagnosticSeverity, integer, Location, LocationLink, Position, Range, _Connection } from 'vscode-languageserver';
-import ShalldnRqDef from './ShalldnRqDef';
-import { Util } from '../util';
-import LexerErrorListener from '../LexerErrorListener';
-import ParseErrorListener from '../ParseErrorListener';
+import ShalldnRqDef from './model/ShalldnRqDef';
+import { Util } from './util';
+import LexerErrorListener from './LexerErrorListener';
+import ParseErrorListener from './ParseErrorListener';
 import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
 import { ParseTreeListener } from 'antlr4ts/tree/ParseTreeListener';
-import { Diagnostics, ShalldnDiagnostic } from '../Diagnostics';
+import { Diagnostics, ShalldnDiagnostic } from './Diagnostics';
 import { Interval } from 'antlr4ts/misc/Interval';
-import ShalldnTermDef from './ShalldnTermDef';
+import ShalldnTermDef from './model/ShalldnTermDef';
 class ShalldnProjectRqAnalyzer implements shalldnListener {
 	constructor(
 		private uri:string,
@@ -564,6 +564,15 @@ export default class ShalldnProj {
 			targetSelectionRange: def.range,
 			originSelectionRange: tr.range
 		});
+	}
+
+	public getAllTerms(): ShalldnTermDef[] {
+		let res: ShalldnTermDef[]=[];
+		for (let defs of this.TermDefs.values()) {
+			res = res.concat(defs);
+		}
+		res.sort((a, b) => a.subj.localeCompare(b.subj));
+		return res;
 	}
 
 	// $$Implements Editor.ERR_DEMOTE
