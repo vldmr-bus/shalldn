@@ -5,7 +5,7 @@ import * as fs from 'fs/promises';
 import * as rx  from 'rxjs';
 import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts';
 import { shalldnLexer } from './antlr/shalldnLexer';
-import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, SentenceContext, shalldnParser, TitleContext, UlContext, Ul_elementContext } from './antlr/shalldnParser';
+import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, SentenceContext, shalldnParser, TitleContext } from './antlr/shalldnParser';
 import { shalldnListener } from './antlr/shalldnListener';
 import { Capabilities } from './server';
 import { DefinitionParams, Diagnostic, DiagnosticSeverity, integer, Location, LocationLink, Position, Range, _Connection } from 'vscode-languageserver';
@@ -64,14 +64,14 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			this.proj.addDiagnostic(this.uri,Diagnostics.error(e, def.idRange));
 		}
 		for (let _once of [1]) {
-			let ul = ctx.ul();
-			if (ul && ul.implmnt().length)
+			let list = ctx.list();
+			if (list && list.implmnt().length)
 				break;
 			if (this.groupImplmentation.length)
 				break;
 			// $$Implements Parser.WARN_RTNL
-			if (ul && ul.ul_element().some(e => 
-				e.sentence(0).text.startsWith('Rationale:'))) // $$Implements Parser.RTNL
+			if (list && list.ul_element().some(e => 
+				e.l_element().childCount&&e.l_element().getChild(0)?.text.startsWith('Rationale:'))) // $$Implements Parser.RTNL
 			{
 				this.proj.addDiagnostic(this.uri,
 					Diagnostics.warning(

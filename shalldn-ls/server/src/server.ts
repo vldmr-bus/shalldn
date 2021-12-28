@@ -236,7 +236,7 @@ connection.onDefinition((params, cancellationToken) => {
 		}
 
 		// informal requirement definition
-		id = Util.lineFragment(tr, p.character,/^.*Implements\s+\*\*([^*]+)$/,/^([^*]*)\*\*\s*?$/);
+		id = Util.lineFragment(tr, p.character,/^.*Implements\s+\*\*([^*]+)$/,/^([^*]*)\*\*/);
 		if (id) {
 			let defs = project.findDefinition(id);
 			if (defs.length > 0 || !isRqDoc(document)) {

@@ -2,6 +2,7 @@ grammar shalldn;
 
 WHITESPACE : (' ' |'\t'|'\r')+? -> skip;
 fragment WORD_CHAR: [a-zA-Z_0-9];
+fragment DIGIT:[0-9];
 fragment CAPITAL_CHAR: [A-Z];
 
 
@@ -11,16 +12,17 @@ UL: '_';
 COMMA: ',';
 HASH: '#';
 SEMI:';';
-QUOTED_FRAGMENT: '"' .+? '"'|'\'' .+? '\'';
+QUOTED_FRAGMENT: '"' ~["\n]+? '"'|'\'' ~['\n]+? '\'';
 IDENTIFIER : WORD ('.' WORD)+ ; // *(see identifier)*
 WORD: WORD_CHAR+;
+NUMBER: [0-9.]+ ;
 SHALL: (STAR STAR 'shall' STAR STAR| UL UL 'shall' UL UL) ;
 NB: '*(n.b.)*';
-URL: [hH][tT][tT][pP][sS]? '://' [a-zA-Z0-9._\-]+ ;
+URL: [hH][tT][tT][pP][sS]? '://' [a-zA-Z0-9.&?/_\-+=]+ ;
 
 bolded_id: (STAR STAR IDENTIFIER STAR STAR | UL UL IDENTIFIER UL UL) ;
 sentence_stop: '.'|';'|'!'|'?';
-punctuation: ','|'_'|'-'|':'|'('|')'|'['|']'|'/';
+punctuation: ','|'_'|'-'|':'|'('|')'|'['|']'|'/'|'$'|'<'|'>'|'='|'&'|'\''|'@'|'#'|'“'|'”'|'’';
 plain_phrase:( WORD|IDENTIFIER | QUOTED_FRAGMENT | URL) ( WORD|IDENTIFIER | QUOTED_FRAGMENT | punctuation | URL)*;
 italiced_phrase: (STAR plain_phrase STAR|UL plain_phrase UL);
 nota_bene: italiced_phrase NB;
@@ -30,14 +32,16 @@ def_rev: body = italiced_phrase ('*(' subject = phrase ')*'|'_(' subject = phras
 phrase: (plain_phrase|italiced_phrase|bolded_phrase|nota_bene|def_drct|def_rev|punctuation)+;
 
 // $$Implements Parser.DOC_Subject
-title: '#'? phrase* subject = italiced_phrase WORD* ul? ;
+title: '#'? phrase* subject = italiced_phrase WORD* list? ;
 hashes: HASH+;
-heading: '\n'*hashes phrase ul?;
+heading: '\n'*hashes phrase list?;
 // $$Implements Parser.RQ_statement, Parser.ERR_No_RQ_ID, Parser.ERR_DUP_SHALL
-requirement: bolded_id '\n'* pre = phrase SHALL post = phrase ('.'|':') ul?;
+requirement: bolded_id '\n'* pre = phrase SHALL post = phrase ('.'|':') list?;
 // $$Implements Parser.IMPLMNT
 implmnt: (STAR)+'Implements' ((bolded_id (',' bolded_id)*) |bolded_phrase) sentence_stop? ;
-ul_element: (STAR)+ sentence+ ;
-ul: ('\n'+(ul_element|implmnt))+;
+l_element: sentence* (phrase ':')? ;
+ul_element: (STAR)+ l_element ;
+ol_element: NUMBER l_element ;
+list: ('\n'+(ul_element|ol_element|implmnt))+;
 sentence: phrase sentence_stop;
-document: '\n'* title (heading|requirement|sentence|(phrase ':'|heading)? ul|'\n'+)+ EOF;
+document: '\n'* title (heading|requirement|sentence|(phrase ':'|heading)? list|'\n'+)+ EOF;
