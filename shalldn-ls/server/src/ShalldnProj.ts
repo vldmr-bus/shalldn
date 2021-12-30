@@ -25,6 +25,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	) { }
 
 	public subject = '';
+	public titleRange?:Range;
 	private groupImplmentation:{level:integer,ids:string[]}[]=[];
 	private defSectLevel:integer|undefined;
 	private currentTermDef: ShalldnTermDef|undefined;
@@ -40,7 +41,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	}
 
 	exitRequirement(ctx:RequirementContext) {
-		let id = ctx.bolded_id()?.IDENTIFIER()?.text || '';
+		let id = ctx.bolded_id()?.IDENTIFIER()?.text || ctx.bolded_id()?.WORD()?.text||'';
 		let range = Util.rangeOfContext(ctx);
 		let idRange = Util.rangeOfContext(ctx.bolded_id());
 		let def = {
@@ -91,6 +92,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 
 	exitTitle(ctx: TitleContext) {
 		this.subject = this.getText(ctx?._subject?.plain_phrase());
+		this.titleRange = Util.rangeOfContext(ctx);
 	}
 	
 	enterImplmnt(ctx: ImplmntContext) {
@@ -452,7 +454,7 @@ export default class ShalldnProj {
 		else
 			this.analyzeNonRqFile(uri,text);
 
-		// $$Implements Editor.ERR_NOIMPL, Editor.ERR_NO_IMPLMNT_TGT, Editor.ERR_NO_IMPLMNT_TGT
+		// $$Implements Editor.ERR_NOIMPL, Editor.ERR_NOIMPL_DOC, Editor.ERR_NO_IMPLMNT_TGT, Editor.ERR_NO_IMPLMNT_TGT
 		this.connection.sendDiagnostics({ uri, diagnostics:this.getDiagnostics(uri) });
 	}
 
@@ -483,16 +485,25 @@ export default class ShalldnProj {
 			);
 
 		if (!firstPass) {
-			// $$Implements Analyzer.ERR_NOIMPL
-			fileData.RqDefs.forEach(def => {
-				let refs = this.RqRefs.get(def.id);
-				if (!refs || refs.length==0){
+			if (fileData.RqDefs.length) {
+				let noimp:{id:string,idRange:Range}[] = [];			
+				fileData.RqDefs.forEach(def => {
+					let refs = this.RqRefs.get(def.id);
+					if (!refs || refs.length==0)
+						noimp.push({ id: def.id, idRange:def.idRange})
+				});
+				if (noimp.length == fileData.RqDefs.length) // $$Implements Analyzer.ERR_NOIMPL_DOC
 					this.addDiagnostic(
 						uri,
-						Diagnostics.error(`Requirement ${def.id} does not have implementation`, def.idRange)
+						Diagnostics.error(`No requirement in the document has implementation`, analyzer.titleRange??Util.lineRangeOfPos({line:0,character:0}))
 					);
-				}
-			});
+				else if (noimp.length) // $$Implements Analyzer.ERR_NOIMPL
+					noimp.forEach(v => this.addDiagnostic(
+						uri,
+						Diagnostics.error(`Requirement ${v.id} does not have implementation`, v.idRange)
+					));
+			}
+
 			// $$Implements Analyzer.ERR_NOIMPL_TGT
 			this.checkRefsTargets(fileData, uri);
 		}

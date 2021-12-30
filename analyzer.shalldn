@@ -40,7 +40,10 @@ In each non-requirement file included in a project the analyzer **shall** recogn
 For each *identifier* of a requirement defined in the project the analyzer **shall** produce a list of text references to every *implementation clause* with the *identifier*.
 
 **Analyzer.ERR_NOIMPL**  
-The analyzer **shall** indicate an error condition for every requirement that does not have any *implementation clause* in the project.
+The analyzer **shall** indicate an error condition for every requirement for which there is no any *implementation clause* in the project when the document containing the requirement for which an *implementation clause* does exist.
+
+**Analyzer.ERR_NOIMPL_DOC**  
+The analyzer **shall** indicate an error condition for a shalldn document that only has requirements for which there is no any *implementation clause* in the project.
 
 **Analyzer.ERR_NOIMPL_TGT**  
 The analyzer **shall** indicate an error condition for every *implementation clause* that has an *identifier* for which there is no requirement is defined in the project.

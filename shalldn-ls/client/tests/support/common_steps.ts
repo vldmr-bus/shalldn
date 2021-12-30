@@ -1,13 +1,18 @@
-import { Given, When, Then, After } from "@cucumber/cucumber";
+import { Given, When, Then, After, BeforeAll } from "@cucumber/cucumber";
 import * as assert from 'assert';
 import { runTests } from '@vscode/test-electron';
 import { helpers } from './helper';
 import * as vscode from 'vscode';
 import Test from './test';
 
+BeforeAll(
+async function activate() {
+	await helpers.activate();
+})
+
 After('@discard_changes',
-async function dsicardChanges(){
-	await helpers.discardChanges();
+async function dsicardChanges(this:Test){
+	await helpers.discardChanges(this);
 })
 
 Given(/the test file named \"(.*)\" (?:with requirement id \"([\w\.]+)\"|is opened)/,
@@ -16,7 +21,14 @@ async function openFile(this:Test,fileName:string,reqId:string) {
 	if (!this.docUri)
 		assert.fail(`File ${fileName} is not found in workspace`);
 	this.thatId = reqId;
-	await helpers.activate(this.docUri);
+	await helpers.openDoc(this.docUri);
+})
+
+Given(/a new file with name "(.*)" is created/,
+async function createFile(this:Test,filename:string) {
+	filename = helpers.expandTextVariables(filename, this);
+	this.docUri = await helpers.createDoc(filename);
+	this.newFile = true;
 })
 
 When("the text below is appended to the end of the file",
@@ -65,4 +77,15 @@ async function checkLocation(this:Test,file:string,text:string) {
 			locations.push(loc);
 	}
 	assert.equal(locations.length,1,`The file ${file} shall have definition "${text}"`);
+})
+
+Then("editor problems shall not include a problem with the text:",
+function checkNoError(this:Test, text:string){
+	text = helpers.expandTextVariables(text, this);
+	if (!this.docUri)
+		assert.fail('The test step does not have a required document')
+	const actualDiagnostics = vscode.languages.getDiagnostics(this.docUri);
+
+	let problem = actualDiagnostics.find(d => d.message == text);
+	assert.strictEqual(problem, undefined, `Problem found with text "${text}"`);
 })
