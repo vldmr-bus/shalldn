@@ -30,7 +30,6 @@ import { URI } from 'vscode-uri';
 
 import {from, mergeMap, Observer} from 'rxjs';
 import * as fs from 'fs/promises';
-import ShalldnTermDef from './model/ShalldnTermDef';
 
 var debug = /--inspect/.test(process.execArgv.join(' '))
 
@@ -82,7 +81,7 @@ connection.onInitialize((params: InitializeParams) => {
 			}
 		};
 	}
-	project = new ShalldnProj(connection, cpblts);
+	project = new ShalldnProj(connection, cpblts,params.workspaceFolders);
 
 	return result;
 });
@@ -97,6 +96,17 @@ connection.onInitialized(() => {
 			connection.console.log('Workspace folder change event received.');
 		});
 	}
+
+	// $$Implements Analyzer.MODS
+	documents.onDidChangeContent(async change => {
+		let linked = project.getLinked(change.document.uri);
+		await validateTextDocument(change.document);
+		for (let l of project.getLinked(change.document.uri))
+			linked.add(l);
+		if (linked.values.length)
+			analyzeFiles([...linked]).subscribe(tellClient);
+	});
+
 });
 
 // The example settings
@@ -159,19 +169,12 @@ const tellClient: Partial<Observer<any>> = {
 			termsCache = terms;
 		else
 			terms='';
-		connection.sendRequest("analyzeDone",terms);
+		connection.sendRequest("analyzeDone",terms)
+			.catch(r => {
+				console.log(r)
+			});
 	}
 }
-
-// $$Implements Analyzer.MODS
-documents.onDidChangeContent(async change => {
-	let linked = project.getLinked(change.document.uri);
-	await validateTextDocument(change.document);
-	for (let l of project.getLinked(change.document.uri))
-		linked.add(l);
-	analyzeFiles([...linked]).subscribe(tellClient);
-});
-
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	// In this simple example we get the settings for every validate run.
@@ -288,7 +291,10 @@ connection.onReferences((params)=>{
 
 // $$Implements Analyzer.PROJECT
 function analyzeFiles(files: string[]) {
-	connection.sendRequest("analyzeStart");
+	connection.sendRequest("analyzeStart")
+	.catch(r=>{
+		console.log(r)
+	});
 	return from(files)
 	.pipe(
 		mergeMap(uri => {
@@ -320,6 +326,9 @@ connection.onRequest(analyzeFilesRequest, (data) => {
 		}
 	});
 });
+
+var ignoreFiles: RequestType<string[], any, any> = new RequestType("ignoreFiles");
+connection.onRequest(ignoreFiles, (ignores:string[]) => project.setIgnores(ignores));
 
 // $$Implements Editor.ERR_DEMOTE
 var toggleErrWarn: RequestType<boolean, any, any> = new RequestType("toggleErrWarn");

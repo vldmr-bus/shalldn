@@ -90,6 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
 	}
 
 	const ig = ignore();
+	const ignores: string[] = [];
 	vscode.workspace.findFiles('**/.gitignore').then(uris=>{
 		// $$Implements Analyzer.GITIGNORE
 		uris.forEach(uri=>{
@@ -98,9 +99,11 @@ export function activate(context: vscode.ExtensionContext) {
 				let pfx = vscode.workspace.asRelativePath(uri).replace(/\/?.gitignore$/,'');
 				if (pfx)
 					txt = txt.replace(/\r/g,'').replace(/^([^#].*)$/gm,`${pfx}$1`);
-				ig.add(txt)
+				ignores.push(txt);
 			}
 		})
+		ignores.forEach(txt => ig.add(txt));
+
 		let include = `**/*.{${files.include.join(',') || '*'}}`;
 		let exlude = `**/*.{${files.exclude.join(',') || undefined}}`;
 		return vscode.workspace.findFiles(include,exlude);
@@ -123,6 +126,7 @@ export function activate(context: vscode.ExtensionContext) {
 					dictTreeDataProvider.setItems(JSON.parse(terms));
 			})
 
+			client.sendRequest("ignoreFiles", ignores);
 			client.sendRequest("analyzeFiles", {
 				files: uris,
 			});

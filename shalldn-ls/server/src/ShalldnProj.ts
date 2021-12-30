@@ -8,7 +8,7 @@ import { shalldnLexer } from './antlr/shalldnLexer';
 import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, SentenceContext, shalldnParser, TitleContext } from './antlr/shalldnParser';
 import { shalldnListener } from './antlr/shalldnListener';
 import { Capabilities } from './server';
-import { DefinitionParams, Diagnostic, DiagnosticSeverity, integer, Location, LocationLink, Position, Range, _Connection } from 'vscode-languageserver';
+import { DefinitionParams, Diagnostic, DiagnosticSeverity, integer, Location, LocationLink, Position, Range, WorkspaceFolder, _Connection } from 'vscode-languageserver';
 import ShalldnRqDef from './model/ShalldnRqDef';
 import { Util } from './util';
 import LexerErrorListener from './LexerErrorListener';
@@ -18,6 +18,9 @@ import { ParseTreeListener } from 'antlr4ts/tree/ParseTreeListener';
 import { Diagnostics, ShalldnDiagnostic } from './Diagnostics';
 import { Interval } from 'antlr4ts/misc/Interval';
 import ShalldnTermDef from './model/ShalldnTermDef';
+import ignore, { Ignore } from 'ignore';
+import { URI } from 'vscode-uri';
+
 class ShalldnProjectRqAnalyzer implements shalldnListener {
 	constructor(
 		private uri:string,
@@ -271,8 +274,11 @@ class FileData {
 export default class ShalldnProj {
 	constructor(
 		private connection: _Connection,
-		private cpblts:Capabilities
-	) {}
+		private cpblts:Capabilities,
+		worspaceFolders:WorkspaceFolder[]|null
+	) {
+		worspaceFolders?.forEach(f=>this.wsFolders.push(URI.parse(f.uri).fsPath));
+	}
 
 	private RqDefs: Map<string,ShalldnRqDef[]> = new Map();
 	private RqRefs: Map<string, ShalldnRqRef[]> = new Map();
@@ -280,6 +286,13 @@ export default class ShalldnProj {
 	private Files:Map<string,FileData> = new Map();
 	public diagnostics: Map<string,ShalldnDiagnostic[]> = new Map();
 	private showAllAsWarnings = false;
+	private ignore?:Ignore;
+	private wsFolders:string[]=[];
+
+	public setIgnores(ignores:string[]) {
+		this.ignore = ignore();
+		ignores.forEach(i => this.ignore!.add(i));
+	}
 
 	resetDiagnostics(uri:string) {
 		this.diagnostics.set(uri, []);
@@ -448,6 +461,11 @@ export default class ShalldnProj {
 
 	// $$Implements Analyzer.PROJECT
 	public analyze(uri: string, text:string) {
+		if (!this.ignore) // do not analyze opened files at startup until ignores are set
+			return;
+		let fspath = URI.parse(uri).fsPath;
+		if (this.wsFolders.some(f => this.ignore!.ignores(path.relative(f,fspath))))
+			return;
 		this.resetDiagnostics(uri);
 		if (path.extname(uri).toLowerCase() == '.shalldn')
 			this.analyzeRqFile(uri,text); 
