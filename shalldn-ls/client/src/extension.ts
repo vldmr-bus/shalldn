@@ -23,6 +23,12 @@ function showIndexingStatusBarMessage() {
 	statusBarItem.show();
 }
 
+function showAnalyzingError() {
+	statusBarItem.text = "$(flame) Shalldn failed...";
+	statusBarItem.tooltip = "Shalldn failed analyzing files in the workspace";
+	statusBarItem.show();
+}
+
 const dictTreeDataProvider = new DictTreeDataProvider();
 
 export function activate(context: vscode.ExtensionContext) {
@@ -124,6 +130,11 @@ export function activate(context: vscode.ExtensionContext) {
 				statusBarItem.hide();
 				if (terms)
 					dictTreeDataProvider.setItems(JSON.parse(terms));
+			})
+			client.onNotification("analyze/error",err=>{
+				showAnalyzingError();
+				if (err)
+					console.log("Shalldn failed analyzing files in workspace: "+err.toString());
 			})
 
 			client.sendRequest("ignoreFiles", ignores);

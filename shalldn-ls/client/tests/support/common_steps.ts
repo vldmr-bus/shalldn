@@ -35,6 +35,7 @@ When("the text below is appended to the end of the file",
 async function enterText(this:Test, text:string){
 	text = helpers.expandTextVariables(text,this);
 	await helpers.enterText(text);
+	await helpers.sleep(800);
 })
 
 Then(/editor problems shall include problem (?:for the words "([^"]+)" )?with the text:/, 

@@ -5,19 +5,14 @@
 import {
 	createConnection,
 	TextDocuments,
-	Diagnostic,
-	DiagnosticSeverity,
 	ProposedFeatures,
 	InitializeParams,
 	DidChangeConfigurationNotification,
-	CompletionItem,
-	CompletionItemKind,
-	TextDocumentPositionParams,
 	TextDocumentSyncKind,
 	InitializeResult,
 	RequestType,
-	FileChangeType
-} from 'vscode-languageserver/node';
+	FileChangeType,
+	TextDocumentChangeEvent} from 'vscode-languageserver/node';
 
 import {
 	TextDocument
@@ -28,7 +23,7 @@ import { Util } from './util';
 import ShalldnProj from './ShalldnProj';
 import { URI } from 'vscode-uri';
 
-import {from, mergeMap, Observer} from 'rxjs';
+import {from, lastValueFrom, mergeMap} from 'rxjs';
 import * as fs from 'fs/promises';
 
 var debug = /--inspect/.test(process.execArgv.join(' '))
@@ -97,16 +92,7 @@ connection.onInitialized(() => {
 		});
 	}
 
-	// $$Implements Analyzer.MODS
-	documents.onDidChangeContent(async change => {
-		let linked = project.getLinked(change.document.uri);
-		await validateTextDocument(change.document);
-		for (let l of project.getLinked(change.document.uri))
-			linked.add(l);
-		if (linked.values.length)
-			analyzeFiles([...linked]).subscribe(tellClient);
-	});
-
+	documents.onDidChangeContent(onDidChangeContent);
 });
 
 // The example settings
@@ -138,7 +124,7 @@ connection.onDidChangeConfiguration(change => {
 	}
 
 	// Revalidate all open text documents
-	documents.all().forEach(validateTextDocument);
+	analyzeFiles(documents.all().map(d=>d.uri.toString())).tellClient();
 });
 
 function getDocumentSettings(resource: string): Thenable<ShalldnSettings> {
@@ -161,27 +147,121 @@ documents.onDidClose(e => {
 	documentSettings.delete(e.document.uri);
 });
 
+function reportAnalyzingFailure(err:any) {
+	console.log("Analyzing files failed: " + err);
+	connection.sendNotification("analyze/error", err);
+}
+
 let termsCache: string;
-const tellClient: Partial<Observer<any>> = {
-	complete() {
-		let terms = JSON.stringify(project.getAllTerms());
-		if (terms != termsCache)
-			termsCache = terms;
-		else
-			terms='';
-		connection.sendRequest("analyzeDone",terms)
-			.catch(r => {
-				console.log(r)
-			});
+class AnalyzerPromise<T> implements Thenable<T> {
+	private promise = new Promise<T>((resolve, reject) => {
+		this.resolve = resolve;
+		this.reject = reject;
+	});
+	public resolve?:(v: T | PromiseLike<T>)=>void;
+	public reject?:(reason?: any) => void;
+	then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult> {
+		return this.promise.then(onfulfilled,onrejected)
+	}
+	public tellClient() {
+		this.then(
+			(files) => {
+				let terms = JSON.stringify(project.getAllTerms());
+				if(terms != termsCache)
+					termsCache = terms;
+				else
+					terms = '';
+				connection.sendRequest("analyzeDone", terms)
+				.catch(r => {
+					console.log(r)
+				});
+			},
+			reportAnalyzingFailure
+		)
 	}
 }
 
-async function validateTextDocument(textDocument: TextDocument): Promise<void> {
-	// In this simple example we get the settings for every validate run.
-	const settings = await getDocumentSettings(textDocument.uri);
+let analyzing: AnalyzerPromise<string[]>|undefined;
+let pendingAnalysis = new AnalyzerPromise<string[]>();
+let pendingFiles = new Set<string>();
+let debounce:NodeJS.Timeout|undefined;
+const debounceTime = 400;
 
-	const text = textDocument.getText();
-	project.analyze(textDocument.uri,text);
+// $$Implements Analyzer.PROJECT
+function analyzeFiles(files: string[]): AnalyzerPromise<string[]> {
+	files.forEach(f=>pendingFiles.add(f));
+	if (analyzing)
+		return pendingAnalysis;
+	if (debounce) {
+		clearTimeout(debounce);
+		debounce = undefined;
+	}
+
+	debounce = setTimeout(()=>{
+		analyzing = pendingAnalysis;
+		pendingAnalysis = new AnalyzerPromise<string[]>();
+		let files = [...pendingFiles];
+		pendingFiles.clear();
+		connection.sendRequest("analyzeStart")
+		.catch(r=>{
+			console.log(r)
+		});
+		if (!files.length) {
+			let done = analyzing;
+			analyzing = undefined;
+			done!.resolve!(files);
+			return;
+		}
+
+		lastValueFrom(
+			from(files)
+			.pipe(
+				mergeMap(
+					uri => {
+						let doc =  documents.get(uri);
+						let path = URI.parse(uri).fsPath;
+						return (doc?Promise.resolve(doc.getText()):fs.readFile(path, 'utf8'))
+							.then(
+								text => project.analyze(uri, text),
+								reason => connection.sendDiagnostics({
+									uri: uri,
+									diagnostics: [Diagnostics.error(reason.message, { line: 0, character: 0 })]
+								})
+							)
+					},
+					100
+				)
+			)
+		).then(
+			()=>{
+				let done = analyzing;
+				analyzing = undefined;
+				done!.resolve!(files)
+			},
+			(err) =>{
+				let done = analyzing;
+				analyzing = undefined;
+				done!.reject!(err);
+			}
+			);
+		},
+		debounceTime
+	);
+	return pendingAnalysis;
+}
+
+// $$Implements Analyzer.MODS
+async function onDidChangeContent(change: TextDocumentChangeEvent<TextDocument>) {
+	let linked = project.getLinked(change.document.uri);
+	analyzeFiles([change.document.uri])
+	.then(
+		()=>{
+			for (let l of project.getLinked(change.document.uri))
+				linked.add(l);
+			analyzeFiles([...linked]).tellClient();
+		},
+		reportAnalyzingFailure
+	);
 }
 
 // $$Implements Analyzer.MODS
@@ -203,13 +283,14 @@ connection.onDidChangeWatchedFiles(_change => {
 		return;
 	let linked = new Set<string>();
 	changed.forEach(uri => { linked = new Set([...linked, ...project.getLinked(uri)]);})
-	analyzeFiles(changed).subscribe({
-		complete() {
+	analyzeFiles(changed)
+	.then(
+		(files)=> {
 			changed.forEach(uri => { linked = new Set([...linked, ...project.getLinked(uri)]); })
-			analyzeFiles([...linked])
-				.subscribe(tellClient);
-		}
-	})
+			analyzeFiles([...linked]).tellClient();
+		},
+		reportAnalyzingFailure
+	)
 });
 
 function isRqDoc(doc:TextDocument):boolean {
@@ -289,42 +370,19 @@ connection.onReferences((params)=>{
 
 })
 
-// $$Implements Analyzer.PROJECT
-function analyzeFiles(files: string[]) {
-	connection.sendRequest("analyzeStart")
-	.catch(r=>{
-		console.log(r)
-	});
-	return from(files)
-	.pipe(
-		mergeMap(uri => {
-			let path = URI.parse(uri).fsPath;
-			return fs.readFile(path, 'utf8')
-				.then(
-					text => project.analyze(uri, text),
-					reason => connection.sendDiagnostics({
-						uri: uri,
-						diagnostics: [Diagnostics.error(reason.message, { line: 0, character: 0 })]
-					})
-				)
-		},
-			100
-		)
-	);
-}
 
 // $$Implements Analyzer.PROJECT
 var analyzeFilesRequest: RequestType<{
 	files: string[],
 }, any, any> = new RequestType("analyzeFiles");
 connection.onRequest(analyzeFilesRequest, (data) => {
-	analyzeFiles(data.files)
-	.subscribe({
-		complete() {
-			analyzeFiles(data.files.filter(p=>/.*\.shalldn$/.test(p)))
-			.subscribe(tellClient);
-		}
-	});
+	analyzeFiles(data.files).then(
+		(files)=>{
+			analyzeFiles(data.files.filter(p => /.*\.shalldn$/.test(p)))
+			.tellClient();
+		},
+		reportAnalyzingFailure
+	);
 });
 
 var ignoreFiles: RequestType<string[], any, any> = new RequestType("ignoreFiles");
