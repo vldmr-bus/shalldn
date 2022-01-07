@@ -20,11 +20,12 @@ import {
 
 import { Diagnostics } from './Diagnostics';
 import { Util } from './util';
-import ShalldnProj from './ShalldnProj';
+import ShalldnProj, { AnalyzerPromise } from './ShalldnProj';
 import { URI } from 'vscode-uri';
 
 import {from, lastValueFrom, mergeMap} from 'rxjs';
 import * as fs from 'fs/promises';
+import { Capabilities } from './capabilities';
 
 var debug = /--inspect/.test(process.execArgv.join(' '))
 
@@ -35,11 +36,6 @@ const connection = createConnection(ProposedFeatures.all);
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-export class Capabilities {
-	public Config = false
-	public WorkspaceFolder = false
-	public DiagnRelated = false
-}
 
 let cpblts = new Capabilities();
 
@@ -76,7 +72,10 @@ connection.onInitialize((params: InitializeParams) => {
 			}
 		};
 	}
-	project = new ShalldnProj(connection, cpblts,params.workspaceFolders);
+	project = new ShalldnProj(
+		params.workspaceFolders?.map(f => URI.parse(f.uri).fsPath)||[], 
+		cpblts, 
+		connection);
 
 	return result;
 });
@@ -124,7 +123,8 @@ connection.onDidChangeConfiguration(change => {
 	}
 
 	// Revalidate all open text documents
-	analyzeFiles(documents.all().map(d=>d.uri.toString())).tellClient();
+	analyzeFiles(documents.all().map(d=>d.uri.toString()))
+	.then(tellClient, reportAnalyzingFailure);
 });
 
 function getDocumentSettings(resource: string): Thenable<ShalldnSettings> {
@@ -153,101 +153,30 @@ function reportAnalyzingFailure(err:any) {
 }
 
 let termsCache: string;
-class AnalyzerPromise<T> implements Thenable<T> {
-	private promise = new Promise<T>((resolve, reject) => {
-		this.resolve = resolve;
-		this.reject = reject;
-	});
-	public resolve?:(v: T | PromiseLike<T>)=>void;
-	public reject?:(reason?: any) => void;
-	then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult> {
-		return this.promise.then(onfulfilled,onrejected)
-	}
-	public tellClient() {
-		this.then(
-			(files) => {
-				let terms = JSON.stringify(project.getAllTerms());
-				if(terms != termsCache)
-					termsCache = terms;
-				else
-					terms = '';
-				connection.sendRequest("analyzeDone", terms)
-				.catch(r => {
-					console.log(r)
-				});
-			},
-			reportAnalyzingFailure
-		)
-	}
-}
-
-let analyzing: AnalyzerPromise<string[]>|undefined;
-let pendingAnalysis = new AnalyzerPromise<string[]>();
-let pendingFiles = new Set<string>();
-let debounce:NodeJS.Timeout|undefined;
-const debounceTime = 400;
-
-// $$Implements Analyzer.PROJECT
-function analyzeFiles(files: string[]): AnalyzerPromise<string[]> {
-	files.forEach(f=>pendingFiles.add(f));
-	if (analyzing)
-		return pendingAnalysis;
-	if (debounce) {
-		clearTimeout(debounce);
-		debounce = undefined;
-	}
-
-	debounce = setTimeout(()=>{
-		analyzing = pendingAnalysis;
-		pendingAnalysis = new AnalyzerPromise<string[]>();
-		let files = [...pendingFiles];
-		pendingFiles.clear();
-		connection.sendRequest("analyzeStart")
-		.catch(r=>{
+function tellClient(files:string[]) {
+	let terms = JSON.stringify(project.getAllTerms());
+	if (terms != termsCache)
+		termsCache = terms;
+	else
+		terms = '';
+	connection.sendRequest("analyzeDone", terms)
+		.catch(r => {
 			console.log(r)
 		});
-		if (!files.length) {
-			let done = analyzing;
-			analyzing = undefined;
-			done!.resolve!(files);
-			return;
-		}
+}
 
-		lastValueFrom(
-			from(files)
-			.pipe(
-				mergeMap(
-					uri => {
-						let doc =  documents.get(uri);
-						let path = URI.parse(uri).fsPath;
-						return (doc?Promise.resolve(doc.getText()):fs.readFile(path, 'utf8'))
-							.then(
-								text => project.analyze(uri, text),
-								reason => connection.sendDiagnostics({
-									uri: uri,
-									diagnostics: [Diagnostics.error(reason.message, { line: 0, character: 0 })]
-								})
-							)
-					},
-					100
-				)
-			)
-		).then(
-			()=>{
-				let done = analyzing;
-				analyzing = undefined;
-				done!.resolve!(files)
-			},
-			(err) =>{
-				let done = analyzing;
-				analyzing = undefined;
-				done!.reject!(err);
-			}
-			);
-		},
-		debounceTime
-	);
-	return pendingAnalysis;
+function analyzeFiles(files: string[]): AnalyzerPromise<string[]> {
+	return project.analyzeFiles(files, (uri: string)=> {
+		let doc = documents.get(uri);
+		let path = URI.parse(uri).fsPath;
+		return (doc ? Promise.resolve(doc.getText()) : fs.readFile(path, 'utf8'));
+	});
+}
+
+function docLoader(uri:string) {
+	let doc = documents.get(uri);
+	let path = URI.parse(uri).fsPath;
+	return (doc ? Promise.resolve(doc.getText()) : fs.readFile(path, 'utf8'));
 }
 
 // $$Implements Analyzer.MODS
@@ -258,7 +187,8 @@ async function onDidChangeContent(change: TextDocumentChangeEvent<TextDocument>)
 		()=>{
 			for (let l of project.getLinked(change.document.uri))
 				linked.add(l);
-			analyzeFiles([...linked]).tellClient();
+			analyzeFiles([...linked])
+			.then(tellClient,reportAnalyzingFailure);
 		},
 		reportAnalyzingFailure
 	);
@@ -287,7 +217,8 @@ connection.onDidChangeWatchedFiles(_change => {
 	.then(
 		(files)=> {
 			changed.forEach(uri => { linked = new Set([...linked, ...project.getLinked(uri)]); })
-			analyzeFiles([...linked]).tellClient();
+			analyzeFiles([...linked])
+			.then(tellClient, reportAnalyzingFailure);
 		},
 		reportAnalyzingFailure
 	)
@@ -379,7 +310,7 @@ connection.onRequest(analyzeFilesRequest, (data) => {
 	analyzeFiles(data.files).then(
 		(files)=>{
 			analyzeFiles(data.files.filter(p => /.*\.shalldn$/.test(p)))
-			.tellClient();
+			.then(tellClient, reportAnalyzingFailure);
 		},
 		reportAnalyzingFailure
 	);

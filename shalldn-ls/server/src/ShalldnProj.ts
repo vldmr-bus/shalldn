@@ -1,13 +1,14 @@
 import ShalldnRqRef from './model/ShalldnRqRef';
 
 import * as path from 'path';
-import * as fs from 'fs/promises';
+import * as fs from 'fs';
+import * as fsp from 'fs/promises';
 import * as rx  from 'rxjs';
 import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts';
 import { shalldnLexer } from './antlr/shalldnLexer';
 import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, SentenceContext, shalldnParser, TitleContext } from './antlr/shalldnParser';
 import { shalldnListener } from './antlr/shalldnListener';
-import { Capabilities } from './server';
+import { Capabilities } from './capabilities';
 import { DefinitionParams, Diagnostic, DiagnosticSeverity, integer, Location, LocationLink, Position, Range, WorkspaceFolder, _Connection } from 'vscode-languageserver';
 import ShalldnRqDef from './model/ShalldnRqDef';
 import { Util } from './util';
@@ -265,6 +266,18 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 
 }
 
+export class AnalyzerPromise<T> implements Thenable<T> {
+	private promise = new Promise<T>((resolve, reject) => {
+		this.resolve = resolve;
+		this.reject = reject;
+	});
+	public resolve?: (v: T | PromiseLike<T>) => void;
+	public reject?: (reason?: any) => void;
+	then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult> {
+		return this.promise.then(onfulfilled, onrejected)
+	}	
+}
+
 class FileData {
 	public RqRefs: ShalldnRqRef[] = [];
 	public RqDefs: ShalldnRqDef[] = [];
@@ -273,12 +286,10 @@ class FileData {
 
 export default class ShalldnProj {
 	constructor(
-		private connection: _Connection,
-		private cpblts:Capabilities,
-		worspaceFolders:WorkspaceFolder[]|null
-	) {
-		worspaceFolders?.forEach(f=>this.wsFolders.push(URI.parse(f.uri).fsPath));
-	}
+		private wsFolders: string[],
+		private cpblts?:Capabilities,
+		private connection?: _Connection,
+	) {	}
 
 	private RqDefs: Map<string,ShalldnRqDef[]> = new Map();
 	private RqRefs: Map<string, ShalldnRqRef[]> = new Map();
@@ -287,7 +298,6 @@ export default class ShalldnProj {
 	public diagnostics: Map<string,ShalldnDiagnostic[]> = new Map();
 	private showAllAsWarnings = false;
 	private ignore?:Ignore;
-	private wsFolders:string[]=[];
 
 	public setIgnores(ignores:string[]) {
 		this.ignore = ignore();
@@ -473,7 +483,7 @@ export default class ShalldnProj {
 			this.analyzeNonRqFile(uri,text);
 
 		// $$Implements Editor.ERR_NOIMPL, Editor.ERR_NOIMPL_DOC, Editor.ERR_NO_IMPLMNT_TGT, Editor.ERR_NO_IMPLMNT_TGT
-		this.connection.sendDiagnostics({ uri, diagnostics:this.getDiagnostics(uri) });
+		this.connection?.sendDiagnostics({ uri, diagnostics:this.getDiagnostics(uri) });
 	}
 
 	analyzeRqFile(uri:string, text:string) {
@@ -487,10 +497,10 @@ export default class ShalldnProj {
 		let inputStream = CharStreams.fromString(text);
 		let lexer = new shalldnLexer(inputStream);
 		// $$Implements Editor.PRBLM_PARSER
-		lexer.addErrorListener(new LexerErrorListener(this.cpblts.DiagnRelated ? uri : "", d => this.addDiagnostic(uri,d)));
+		lexer.addErrorListener(new LexerErrorListener(this.cpblts?.DiagnRelated ? uri : "", d => this.addDiagnostic(uri,d)));
 		let tokenStream = new CommonTokenStream(lexer);
 		let parser = new shalldnParser(tokenStream);
-		parser.addErrorListener(new ParseErrorListener(this.cpblts.DiagnRelated ? uri : "", d => this.addDiagnostic(uri,d)));
+		parser.addErrorListener(new ParseErrorListener(this.cpblts?.DiagnRelated ? uri : "", d => this.addDiagnostic(uri,d)));
 		let dctx = parser.document();
 		ParseTreeWalker.DEFAULT.walk(analyzer as ParseTreeListener, dctx);
 
@@ -561,6 +571,76 @@ export default class ShalldnProj {
 
 	}
 
+private analyzing: AnalyzerPromise<string[]> | undefined;
+private pendingAnalysis = new AnalyzerPromise<string[]>();
+private pendingFiles = new Set<string>();
+private debounce: NodeJS.Timeout | undefined;
+private static debounceTime = 400;
+
+// $$Implements Analyzer.PROJECT
+public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): AnalyzerPromise<string[]> {
+	files.forEach(f => this.pendingFiles.add(f));
+	if (this.analyzing)
+		return this.pendingAnalysis;
+	if (this.debounce) {
+		clearTimeout(this.debounce);
+		this.debounce = undefined;
+	}
+
+	this.debounce = setTimeout(() => {
+		this.debounce = undefined;
+		this.analyzing = this.pendingAnalysis;
+		this.pendingAnalysis = new AnalyzerPromise<string[]>();
+		let files = [...this.pendingFiles];
+		this.pendingFiles.clear();
+		this.connection?.sendRequest("analyzeStart")
+			.catch(r => {
+				console.log(r)
+			});
+		if (!files.length) {
+			let done = this.analyzing;
+			this.analyzing = undefined;
+			done!.resolve!(files);
+			return;
+		}
+
+		rx.lastValueFrom(
+			rx.from(files)
+				.pipe(
+					rx.mergeMap(
+						uri => {
+							return loader(uri)
+								.then(
+									text => this.analyze(uri, text),
+									reason => this.connection?.sendDiagnostics({
+										uri: uri,
+										diagnostics: [Diagnostics.error(reason.message, { line: 0, character: 0 })]
+									})
+								)
+						},
+						100
+					)
+				)
+		).then(
+			() => {
+				let done = this.analyzing;
+				this.analyzing = undefined;
+				done!.resolve!(files)
+			},
+			(err) => {
+				let done = this.analyzing;
+				this.analyzing = undefined;
+				done!.reject!(err);
+			}
+		);
+	},
+		ShalldnProj.debounceTime
+	);
+	return this.pendingAnalysis;
+}
+
+
+
 	// $$Implements Analyzer.RQS
 	public findDefinition(tr:Util.TextRange): LocationLink[] {
 		let defs = this.RqDefs.get(tr.text)||[];
@@ -615,8 +695,34 @@ export default class ShalldnProj {
 				diagnostics.forEach(diag=>diag.demote());
 			else
 				diagnostics.forEach(diag => diag.promote());
-			this.connection.sendDiagnostics({ uri, diagnostics });
+			this.connection?.sendDiagnostics({ uri, diagnostics });
 		}
 	}
 
+	public expandMD(apath:string, rootpath:string):string{
+		let uri = URI.file(apath).toString();
+		let text = fs.readFileSync(apath, 'utf8');
+		let res = text.replace(/\r/g,'');
+		this.RqDefs.forEach(defs => {
+			let def = defs[0];
+			let dapath = URI.parse(def.uri).fsPath;
+			let rpath = path.relative(path.dirname(apath),dapath).replace(/\\/g,'/');
+			if (uri == def.uri)
+				res = res.replace(new RegExp(`\\*?\\*${def.id}\\*\\*?`),`$&<a name="${def.id.replace(/ /g,'_')}"></a>`)
+			else
+				res = res.replace(new RegExp(`\\*\\*${def.id}\\*\\*`,'g'),`[$&](${rpath}#${def.id.replace(/ /g,'_')})`)
+		});
+		this.TermDefs.forEach(terms=>{
+			let term = terms[0];
+			let dapath = URI.parse(term.uri).fsPath;
+			let rpath = path.relative(path.dirname(apath), dapath).replace(/\\/g, '/');
+			if (uri == term.uri) {
+				let lines = res.split('\n');
+				lines[term.range.start.line] += `<a name="${term.subj.replace(/ /g, '_')}"></a>`;
+				res = lines.join('\n');
+			} else
+				res = res.replace(new RegExp(`\\*${term.subj}\\*`, 'gi'), `[$&](${rpath}#${term.subj.replace(/ /g, '_')})`)
+		})
+		return res;
+	}
 }
