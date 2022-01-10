@@ -119,7 +119,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		if (ctx.bolded_phrase())
 			ids.push(this.getText(ctx.bolded_phrase()?.plain_phrase()));
 		else
-			ctx.bolded_id().forEach(id => ids.push(id.IDENTIFIER()?.text||''));
+			ctx.bolded_id().forEach(id => ids.push(id.IDENTIFIER()?.text || id.WORD()?.text||''));
 		if (parentRq == null && (parentTitle || parentHeading) ) {
 			let level = (parentHeading)?parentHeading.hashes().childCount:1;
 			while (this.groupImplmentation.length && this.groupImplmentation[0].level>=level)
@@ -355,6 +355,10 @@ export default class ShalldnProj {
 		let tgtRange = Util.rangeOfContext(tgt);
 		let clauseRange = Util.rangeOfContext(clause);
 		ids.forEach(id=>{
+			if (!id) {
+				Diagnostics.error(`Definition without subject`, clauseRange);
+				return;
+			}
 			let ref: ShalldnRqRef = {uri, id, tgtRange,clauseRange};
 			fileData?.RqRefs.push(ref);
 			let refs = this.RqRefs.get(ref.id);
@@ -703,26 +707,64 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		let uri = URI.file(apath).toString();
 		let text = fs.readFileSync(apath, 'utf8');
 		let res = text.replace(/\r/g,'');
-		this.RqDefs.forEach(defs => {
-			let def = defs[0];
-			let dapath = URI.parse(def.uri).fsPath;
-			let rpath = path.relative(path.dirname(apath),dapath).replace(/\\/g,'/');
-			if (uri == def.uri)
-				res = res.replace(new RegExp(`\\*?\\*${def.id}\\*\\*?`),`$&<a name="${def.id.replace(/ /g,'_')}"></a>`)
-			else
-				res = res.replace(new RegExp(`\\*\\*${def.id}\\*\\*`,'g'),`[$&](${rpath}#${def.id.replace(/ /g,'_')})`)
-		});
+		let lines = res.split('\n');
 		this.TermDefs.forEach(terms=>{
 			let term = terms[0];
 			let dapath = URI.parse(term.uri).fsPath;
 			let rpath = path.relative(path.dirname(apath), dapath).replace(/\\/g, '/');
 			if (uri == term.uri) {
-				let lines = res.split('\n');
 				lines[term.range.start.line] += `<a name="${term.subj.replace(/ /g, '_')}"></a>`;
-				res = lines.join('\n');
 			} else
-				res = res.replace(new RegExp(`\\*${term.subj}\\*`, 'gi'), `[$&](${rpath}#${term.subj.replace(/ /g, '_')})`)
+				lines.forEach((line,i)=>{
+					const regex = new RegExp(`[^*_]\\b${term.subj}\\b[^*_]`, 'gi');
+					if (regex.test(line))
+						lines[i] = line.replace(regex, `[$&](${rpath}#${term.subj.replace(/ /g, '_')})`);
+				})
+
 		})
-		return res;
+		let footer='  \n# REFERENCES:  \n';
+		let fdata = this.Files.get(uri);
+		fdata?.RqDefs.forEach(def=>{
+			let i = def.idRange.start.line;
+			const defid = def.id.replace(/[- ]/g, '_');
+			lines[i] += `<a name="${defid}"></a>`;
+			const refs = this.RqRefs.get(def.id);
+			if (!refs)
+				return;
+			lines[i] = lines[i].replace(def.id, `$&<a href="#${defid}_REFS">[REFS]</a>`)
+			let links:string[] = [];
+			let j=1;
+			refs.forEach((ref,idx)=>{
+				let dapath = URI.parse(ref.uri).fsPath;
+				let rpath = path.relative(path.dirname(apath), dapath).replace(/\\/g, '/');
+				if (!ref.uri.endsWith('.shalldn'))
+					return;
+				links.push(`[${j++}](${rpath}#${defid}_${idx})`);
+			})
+			if (links.length) {
+				footer += `<a name="${defid}_REFS"></a>[${def.id}](#${defid}): ${links.join(', ')}  \n`;
+			}
+		});
+		fdata?.RqRefs.forEach(ref=>{
+			const refs = this.RqRefs.get(ref.id);
+			if (!refs)
+				return;
+			let linked = false;
+			refs.forEach((r, idx) => {
+				if (r != ref)
+					return;
+				const defs = this.RqDefs.get(ref.id);
+				if (!defs || defs.length == 0)
+					return;
+				const def = defs[0];
+				const defid = def.id.replace(/[- ]/g, '_');
+				let dapath = URI.parse(def.uri).fsPath;
+				let rpath = path.relative(path.dirname(apath), dapath).replace(/\\/g, '/');
+				let i = ref.clauseRange.start.line;
+				lines[i] = lines[i].replace(def.id, `[$&](${rpath}#${defid})`);
+				lines[ref.tgtRange.start.line] += `<a name="${defid}_${idx}"></a>`;
+			})
+		})
+		return lines.join('\n')+footer;
 	}
 }
