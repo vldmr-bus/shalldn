@@ -722,7 +722,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 				})
 
 		})
-		let footer='  \n# REFERENCES:  \n';
+		let references='  \n# REFERENCES:  \n';
 		let fdata = this.Files.get(uri);
 		fdata?.RqDefs.forEach(def=>{
 			let i = def.idRange.start.line;
@@ -742,7 +742,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 				links.push(`[${j++}](${rpath}#${defid}_${idx})`);
 			})
 			if (links.length) {
-				footer += `<a name="${defid}_REFS"></a>[${def.id}](#${defid}): ${links.join(', ')}  \n`;
+				references += `<a name="${defid}_REFS"></a>[${def.id}](#${defid}): ${links.join(', ')}  \n`;
 			}
 		});
 		fdata?.RqRefs.forEach(ref=>{
@@ -764,7 +764,9 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 				lines[i] = lines[i].replace(def.id, `[$&](${rpath}#${defid})`);
 				lines[ref.tgtRange.start.line] += `<a name="${defid}_${idx}"></a>`;
 			})
-		})
-		return lines.join('\n')+footer;
+		});
+		let titleLine = 1+lines.findIndex(l=>l.startsWith('#'));
+		lines.splice(titleLine,0,references);
+		return lines.join('\n');
 	}
 }
