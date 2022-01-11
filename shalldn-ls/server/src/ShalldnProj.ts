@@ -273,9 +273,9 @@ export class AnalyzerPromise<T> implements Thenable<T> {
 	});
 	public resolve?: (v: T | PromiseLike<T>) => void;
 	public reject?: (reason?: any) => void;
-	then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult> {
+	then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null): PromiseLike<TResult1 | TResult2> {
 		return this.promise.then(onfulfilled, onrejected)
-	}	
+	}
 }
 
 class FileData {
