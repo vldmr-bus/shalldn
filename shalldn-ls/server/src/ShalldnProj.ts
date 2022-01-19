@@ -716,7 +716,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 				lines[term.range.start.line] += `<a name="${term.subj.replace(/ /g, '_')}"></a>`;
 			} else
 				lines.forEach((line,i)=>{
-					const regex = new RegExp(`[^*_]\\b${term.subj}\\b[^*_]`, 'gi');
+					const regex = new RegExp(`[*_]${term.subj}[*_]`, 'gi');
 					if (regex.test(line))
 						lines[i] = line.replace(regex, `[$&](${rpath}#${term.subj.replace(/ /g, '_')})`);
 				})
