@@ -26,6 +26,7 @@ import { URI } from 'vscode-uri';
 import {from, lastValueFrom, mergeMap} from 'rxjs';
 import * as fs from 'fs/promises';
 import { Capabilities } from './capabilities';
+import e = require('express');
 
 var debug = /--inspect/.test(process.execArgv.join(' '))
 
@@ -152,14 +153,21 @@ function reportAnalyzingFailure(err:any) {
 	connection.sendNotification("analyze/error", err);
 }
 
+// $$Implements Analyzer.NOTIFY
 let termsCache: string;
+let tagsCache:string;
 function tellClient(files:string[]) {
 	let terms = JSON.stringify(project.getAllTerms());
 	if (terms != termsCache)
 		termsCache = terms;
 	else
 		terms = '';
-	connection.sendRequest("analyzeDone", terms)
+	let tags = JSON.stringify(project.getTagsTree());
+	if (tags != tagsCache)
+		tagsCache = tags;
+	else
+		tags = '';
+	connection.sendRequest("analyzeDone", {terms,tags})
 		.catch(r => {
 			console.log(r)
 		});
@@ -199,6 +207,8 @@ connection.onDidChangeWatchedFiles(_change => {
 	let changed:string[] = [];
 	_change.changes.forEach(event=>{
 		if (!event.uri.startsWith('file://'))
+			return;
+		if (project.ignored(event.uri))
 			return;
 		if (event.type == FileChangeType.Created)
 			return;
@@ -243,7 +253,7 @@ connection.onDefinition((params, cancellationToken) => {
 
 		let id = Util.lineFragment(tr,p.character,/.*?([\w\.]*)$/,/^([\w\.]*).*?$/s);
 		if (id) {
-			let defs = project.findDefinition(id);
+			let defs = project.findDefinition(id.text,id.range);
 			if (defs.length > 0 || !isRqDoc(document)) {
 				resolve(defs);
 				return;
@@ -253,14 +263,14 @@ connection.onDefinition((params, cancellationToken) => {
 		// informal requirement definition
 		id = Util.lineFragment(tr, p.character,/^.*Implements\s+\*\*([^*]+)$/,/^([^*]*)\*\*/);
 		if (id) {
-			let defs = project.findDefinition(id);
+			let defs = project.findDefinition(id.text,id.range);
 			if (defs.length > 0 || !isRqDoc(document)) {
 				resolve(defs);
 				return;
 			}
 		}
 
-		// term definitions
+		// term definitions: $$Implements Analyzer.DEFS, Editor.NAV_TERM_DEF
 		id = Util.lineFragment(tr, p.character,/\*+([^*]*)$/,/^([^*]*)\*+/s);
 		if (!id)
 			id = Util.lineFragment(tr, p.character,/_+([^*_]*)$/, /^([^*_]*)_+/s);
@@ -318,6 +328,18 @@ connection.onRequest(analyzeFilesRequest, (data) => {
 
 var ignoreFiles: RequestType<string[], any, any> = new RequestType("ignoreFiles");
 connection.onRequest(ignoreFiles, (ignores:string[]) => project.setIgnores(ignores));
+
+// $$Implements Editor.ERR_DEMOTE
+var toggleErrWarn: RequestType<boolean, any, any> = new RequestType("toggleErrWarn");
+connection.onRequest(toggleErrWarn, () => {
+	project.toggleErrWarn();
+});
+
+var getDefinitionRequest: RequestType<string, any, any> = new RequestType("getDefinition");
+connection.onRequest(getDefinitionRequest, (id) => {
+	let defs = project.findDefinition(id);
+	return defs.length?defs[0]:undefined;
+});
 
 // $$Implements Editor.ERR_DEMOTE
 var toggleErrWarn: RequestType<boolean, any, any> = new RequestType("toggleErrWarn");

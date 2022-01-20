@@ -713,7 +713,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 			let dapath = URI.parse(term.uri).fsPath;
 			let rpath = path.relative(path.dirname(apath), dapath).replace(/\\/g, '/');
 			if (uri == term.uri) {
-				lines[term.range.start.line] += `<a name="${term.subj.replace(/ /g, '_')}"></a>`;
+				lines[term.range.start.line] = lines[term.range.start.line].replace(/(\s*)$/, `<a name="${term.subj.replace(/ /g, '_')}"></a>$&`);
 			} else
 				lines.forEach((line,i)=>{
 					const regex = new RegExp(`[*_]${term.subj}[*_]`, 'gi');
@@ -722,12 +722,12 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 				})
 
 		})
-		let references='  \n# REFERENCES:  \n';
+		let references:string[]=[];
 		let fdata = this.Files.get(uri);
 		fdata?.RqDefs.forEach(def=>{
 			let i = def.idRange.start.line;
 			const defid = def.id.replace(/[- ]/g, '_');
-			lines[i] += `<a name="${defid}"></a>`;
+			lines[i] = lines[i].replace(/(\s*)$/,`<a name="${defid}"></a>$&`);
 			const refs = this.RqRefs.get(def.id);
 			if (!refs)
 				return;
@@ -742,7 +742,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 				links.push(`[${j++}](${rpath}#${defid}_${idx})`);
 			})
 			if (links.length) {
-				references += `<a name="${defid}_REFS"></a>[${def.id}](#${defid}): ${links.join(', ')}  \n`;
+				references.push(`<a name="${defid}_REFS"></a>[${def.id}](#${defid}): ${links.join(', ')}  `);
 			}
 		});
 		fdata?.RqRefs.forEach(ref=>{
@@ -762,11 +762,14 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 				let rpath = path.relative(path.dirname(apath), dapath).replace(/\\/g, '/');
 				let i = ref.clauseRange.start.line;
 				lines[i] = lines[i].replace(def.id, `[$&](${rpath}#${defid})`);
-				lines[ref.tgtRange.start.line] += `<a name="${defid}_${idx}"></a>`;
+				lines[ref.tgtRange.start.line] = lines[ref.tgtRange.start.line].replace(/(\s*)$/,`<a name="${defid}_${idx}"></a>$&`);
 			})
 		});
+		if (references.length) {
 		let titleLine = 1+lines.findIndex(l=>l.startsWith('#'));
-		lines.splice(titleLine,0,references);
+			references.sort();
+			lines.splice(titleLine, 0,'  \n# REFERENCES:  ',...references);
+		}
 		return lines.join('\n');
 	}
 }

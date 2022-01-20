@@ -114,7 +114,8 @@
 		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
 		"test": "ts-node ./client/tests/support/cli-runner/runTest",
-		"clean": "del-cli --force ./client/out && del-cli --force ./server/out && del-cli --force ./server/src/antlr"
+		"clean": "del-cli --force ./client/out && del-cli --force ./server/out && del-cli --force ./server/src/antlr",
+		"serve": "tsc -b && node ./server/out/http-server.js"
 	},
 	"devDependencies": {
 		"@cucumber/cucumber": "^8.0.0-rc.1",
