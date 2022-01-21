@@ -18,6 +18,8 @@ Either:
 * *individual implementation clause*;
 * inline comment *implementation clause*;
 
+### Namespace
+Of identifier: a portion of *identifier* preceding the last dot character.
 
 ## Requirements
 
@@ -59,3 +61,8 @@ The analyzer **shall** ignore the case of definition subject in a query except w
 
 **Analyzer.MODS**  
 When any of the project files is modified the analyzer **shall** automatically perform analysis of that files and all the files that have links to the modified files either prior or after the modification.
+
+**Analyzer.NOTIFY**
+After completing analysis of project initiated by explicit request or file modification the analyzer **shall** produce notification that includes the following:
+* the list of all term definitions in the project if the list changed since previous notification;
+* the hierarchical list of identifiers of tagged requirements grouped by *tag* then by *namespace* if the list changed since previous notification;

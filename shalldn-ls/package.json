@@ -4,7 +4,7 @@
 	"description": "Shalldn requirements language support",
 	"author": "Vladimir Avdonin",
 	"license": "MIT",
-	"version": "0.0.10",
+	"version": "0.0.12",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/vldmr-bus/shalldn"
@@ -54,6 +54,11 @@
 			},
 			{
 				"command": "shalldn.dict.reveal",
+				"title": "Term definition",
+				"icon": "$(symbol-reference)"
+			},
+			{
+				"command": "shalldn.def.reveal",
 				"title": "Reveal",
 				"icon": "$(symbol-reference)"
 			}
@@ -63,6 +68,11 @@
 				{
 					"when": "view == shalldnDictionary && viewItem == dictItem",
 					"command": "shalldn.dict.reveal",
+					"group": "inline"
+				},
+				{
+					"when": "view == shalldnTags && viewItem == tagItem",
+					"command": "shalldn.def.reveal",
 					"group": "inline"
 				}
 			]
@@ -80,6 +90,11 @@
 					"id": "shalldnDictionary",
 					"name": "Dictionary",
 					"icon": "image/dict.svg"
+				},
+				{
+					"id": "shalldnTags",
+					"name": "Tagged requirements",
+					"icon": "$(tag)"
 				}
 			]
 		},
@@ -114,6 +129,7 @@
 		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
 		"test": "ts-node ./client/tests/support/cli-runner/runTest",
+		"unit": "mocha -r ts-node/register ./server/tests/*.tests.ts",
 		"clean": "del-cli --force ./client/out && del-cli --force ./server/out && del-cli --force ./server/src/antlr",
 		"serve": "tsc -b && node ./server/out/http-server.js"
 	},

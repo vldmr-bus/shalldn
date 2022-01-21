@@ -7,30 +7,19 @@ import { marked } from "marked";
 import path = require('path');
 import ShalldnProj, { AnalyzerPromise } from './ShalldnProj';
 import { URI } from 'vscode-uri';
+import {Util} from './util';
 
 if (process.argv.length != 3) {
 	process.stderr.write('Requires single argument: path to the root of shalldn project');
 	process.exit(1);
 }
 	
-const root = process.argv[2];
+const root = path.resolve(process.argv[2]);
+
 
 if (!fs.existsSync(root)) {
 	process.stderr.write('Can not access directory '+root);
 	process.exit(1);
-}
-
-function findFiles(dir:string, filter:RegExp, cb:(f:string)=>void) {
-	var files = fs.readdirSync(dir);
-	for (var i = 0; i < files.length; i++) {
-		var fpath = path.join(dir, files[i]);
-		var stat = fs.lstatSync(fpath);
-		if (stat.isDirectory()) {
-			findFiles(fpath,filter,cb);
-		}
-		else if (filter.test(fpath))
-			cb(fpath);
-	};
 }
 
 function analyzeFiles(files: string[]): AnalyzerPromise<string[]> {
@@ -42,7 +31,7 @@ function analyzeFiles(files: string[]): AnalyzerPromise<string[]> {
 
 const ignore = ignorer.default();
 const ignores: string[] = [];
-findFiles(root, /\.gitignore$/,fpath=>{
+Util.findFiles(root, /\.gitignore$/,fpath=>{
 	let txt = fs.readFileSync(fpath).toString();
 	let pfx = path.relative(root, path.dirname(fpath));
 	if (pfx.length > 1)
@@ -55,7 +44,7 @@ const project = new ShalldnProj([root]);
 project.setIgnores(ignores);
 
 const uris:string[] = [];
-findFiles(root, /\.shalldn/,(f)=>uris.push(URI.file(path.resolve(root,f)).toString()));
+Util.findFiles(root, /\.shalldn/,(f)=>uris.push(URI.file(path.resolve(root,f)).toString()));
 analyzeFiles(uris)
 .then(()=>analyzeFiles(uris))
 .then((files)=>{console.log(`Analyzed ${files.length} files`)});

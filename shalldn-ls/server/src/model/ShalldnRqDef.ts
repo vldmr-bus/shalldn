@@ -5,4 +5,5 @@ export default interface ShalldnRqDef {
 	range: Range;
 	idRange: Range;
 	uri: string;
+	tags?:string[];
 }

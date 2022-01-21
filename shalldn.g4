@@ -16,12 +16,13 @@ HASH: '#';
 SEMI:';';
 QUOTED_FRAGMENT: '"' ~["\n]+? '"'|'\'' ~['\n]+? '\'';
 NUMBER: [0-9]+ ('.' [0-9]+)? ;
-IDENTIFIER : WORD ('.' WORD)+ ; // *(see identifier)*
 WORD: WORD_CHAR+;
+IDENTIFIER : WORD ('.' WORD)+ ; // *(see identifier)*
 SHALL: ('**' 'shall' '**'| '__' 'shall' '__') ;
 NB: '*(n.b.)*';
 URL: [hH][tT][tT][pP][sS]? '://' [a-zA-Z0-9.&?/_\-+=]+ ;
 
+tag: '$' (WORD|IDENTIFIER);
 bolded_id: ('**' (WORD|IDENTIFIER) '**' | '__' (WORD|IDENTIFIER) '__') ;
 sentence_stop: '.'|';'|'!'|'?';
 punctuation: ','|'_'|'-'|':'|'('|')'|'['|']'|'/'|'$'|'<'|'>'|'='|'&'|'\''|'@'|'#'|'“'|'”'|'’';
@@ -37,8 +38,8 @@ phrase: (plain_phrase|italiced_phrase|bolded_phrase|nota_bene|def_drct|def_rev|p
 title: '#'? phrase* subject = italiced_phrase WORD* list? ;
 hashes: HASH+;
 heading: '\n'*hashes phrase list?;
-// $$Implements Parser.RQ_statement, Parser.ERR_No_RQ_ID, Parser.ERR_DUP_SHALL
-requirement: bolded_id '\n'* pre = phrase SHALL post = phrase ('.'|':') list?;
+// $$Implements Parser.RQ_statement, Parser.ERR_No_RQ_ID, Parser.ERR_DUP_SHALL, Parser.TAGGED_RQ
+requirement: ( tag+ '\n'* )* bolded_id '\n'* pre = phrase SHALL post = phrase ('.'|':') list?;
 // $$Implements Parser.IMPLMNT
 implmnt: STAR 'Implements' ((bolded_id (',' bolded_id)*) |bolded_phrase) sentence_stop? ;
 l_element: sentence* (phrase ':')? ;

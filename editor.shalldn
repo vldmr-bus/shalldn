@@ -26,12 +26,14 @@ The editor **shall** indicate an error for every requirement for which there is 
 **Editor.ERR_NOIMPL_DOC**  
 The editor **shall** indicate an error for a shalldn document that only has requirements for which there is no any *implementation clause* in the project.
 
+$Unsure  
 **Editor.CFG_NOIMP**  
 The editor **shall** allow switching on and off mode for hiding errors for requirements without implementation.
 
 **Editor.ERR_NO_IMPLMNT_TGT**  
 The editor **shall** indicate an error for every *implementation clause* for which the Shalldn analyzer returns an empty list of requirement definitions with the *identifier* from the clause.
 
+$Unsure   
 **Editor.CFG_PRJ_FTYPES**  
 The editor **shall** allow configuring a set of file name extensions to select a non-requirement files included in project.
 

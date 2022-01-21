@@ -48,12 +48,15 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		let id = ctx.bolded_id()?.IDENTIFIER()?.text || ctx.bolded_id()?.WORD()?.text||'';
 		let range = Util.rangeOfContext(ctx);
 		let idRange = Util.rangeOfContext(ctx.bolded_id());
-		let def = {
+		let def:ShalldnRqDef = {
 			id,
 			uri: this.uri,
 			range,
 			idRange
 		};
+		let tags = ctx.tag();
+		if (tags)
+			def.tags = tags.map(t=>t.text.substring(1));
 		try {
 			this.proj.addRequirement(def);
 			//$$Implements Parser.ERR_NO_SUBJ
@@ -473,12 +476,18 @@ export default class ShalldnProj {
 		return linked;
 	}
 
+	public ignored(uri:string) {
+		if (!this.ignore) // do not analyze opened files at startup until ignores are set
+			return true;
+		let fspath = URI.parse(uri).fsPath;
+		if (this.wsFolders.some(f => this.ignore!.ignores(path.relative(f, fspath))))
+			return true;
+		return false;		
+	}
+
 	// $$Implements Analyzer.PROJECT
 	public analyze(uri: string, text:string) {
-		if (!this.ignore) // do not analyze opened files at startup until ignores are set
-			return;
-		let fspath = URI.parse(uri).fsPath;
-		if (this.wsFolders.some(f => this.ignore!.ignores(path.relative(f,fspath))))
+		if (this.ignored(uri))
 			return;
 		this.resetDiagnostics(uri);
 		if (path.extname(uri).toLowerCase() == '.shalldn')
@@ -646,13 +655,13 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 
 
 	// $$Implements Analyzer.RQS
-	public findDefinition(tr:Util.TextRange): LocationLink[] {
-		let defs = this.RqDefs.get(tr.text)||[];
+	public findDefinition(id:string, range?:Range): LocationLink[] {
+		let defs = this.RqDefs.get(id)||[];
 		return defs.map(def => <LocationLink>{
 			targetUri: def.uri,
 			targetRange: def.range,
 			targetSelectionRange: def.range,
-			originSelectionRange: tr.range
+			originSelectionRange: range
 		});
 	}
 
@@ -766,10 +775,33 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 			})
 		});
 		if (references.length) {
-		let titleLine = 1+lines.findIndex(l=>l.startsWith('#'));
+			let titleLine = 1+lines.findIndex(l=>l.startsWith('#'));
 			references.sort();
 			lines.splice(titleLine, 0,'  \n# REFERENCES:  ',...references);
 		}
 		return lines.join('\n');
 	}
+
+
+	public getTagsTree() {
+		let tags: Map<string,string[]>=new Map();
+		this.RqDefs.forEach(def=>{
+			def.forEach(rq=>{
+				if (rq.tags && rq.tags.length)
+					rq.tags.forEach(t=>{
+						let ids=tags.get(t);
+						if (!ids)
+							tags.set(t,ids=[]);
+						ids.push(rq.id);
+					})
+			})
+		})
+		var result:Util.NamespaceTree = [];
+		for (const key of tags) {
+			result.push({name:key[0],items:Util.makeNamespaceTree(key[1])})
+		}
+		return result;
+	}
 }
+
+

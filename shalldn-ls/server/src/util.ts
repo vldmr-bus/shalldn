@@ -1,4 +1,7 @@
 import { ParserRuleContext, Token } from 'antlr4ts'
+import { type } from 'os';
+import * as fs from "fs";
+import path = require('path');
 import { Position, Range } from 'vscode-languageserver-types'
 
 export namespace Util {
@@ -58,4 +61,70 @@ export namespace Util {
 		range.end.character = range.start.character+text.length;
 		return {text,range};
 	}
+
+	export interface TreeItem<T> {
+		name: T;
+		items: (T | TreeItem<T>)[];
+	}
+
+	export type NamespaceTree = (string | TreeItem<string>)[];
+
+	function namespaceNode(s:string, pfx:string):TreeItem<string>|string {
+		let parts = s.split('.');
+		if (parts.length<2)
+			return pfx+s;
+		let name = pfx+parts[0];
+		let result: TreeItem<string> = { name, items: [namespaceNode(parts.slice(1).join('.'),name+'.')]};
+		return result;
+	}
+
+	function normalizeNodes(nodes:NamespaceTree):NamespaceTree {
+		let map:Map<string,NamespaceTree> = new Map();
+		nodes.forEach(n=>{
+			let name =  (typeof n == 'string')?n:n.name;
+			let ns = map.get(name);
+			if (!ns)
+				map.set(name,ns=[]);
+			if (typeof n == 'string')
+				ns.push(n);
+			else
+				ns.splice(ns.length,0,...n.items);
+		});
+		for (const key of map.keys()) {
+			let ns = map.get(key);
+			if (ns!.length<2)
+				continue;
+			let norm = normalizeNodes(ns!);
+			map.set(key,norm);
+		}
+		let result: NamespaceTree = [];
+		for (const name of map.keys()) {
+			let items = map.get(name)!;
+			if (items.length == 1 && typeof items[0] == 'string')
+				result.push(items[0]);
+			else
+				result.push({name,items});
+		}
+		return result;
+	}
+
+	export function makeNamespaceTree(items:string[]) {
+		let all = normalizeNodes( items.map(i=>namespaceNode(i,'')));
+		return all;
+	}
+
+	export function findFiles(dir:string, filter:RegExp, cb:(f:string)=>void) {
+	var files = fs.readdirSync(dir);
+	for (var i = 0; i < files.length; i++) {
+		var fpath = path.join(dir, files[i]);
+		var stat = fs.lstatSync(fpath);
+		if (stat.isDirectory()) {
+			findFiles(fpath,filter,cb);
+		}
+		else if (filter.test(fpath))
+			cb(fpath);
+	};
+}
+
+
 }

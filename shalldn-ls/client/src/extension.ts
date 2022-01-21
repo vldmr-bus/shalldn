@@ -12,6 +12,8 @@ import {
 } from 'vscode-languageclient/node';
 import { DictTreeDataProvider } from './dictTreeDataProvider';
 import ShalldnTermDef from './ShalldnTermDef';
+import { TagTreeItem } from './tagTreeItem';
+import { TagTreeDataProvider } from './tagTreeDataProvider';
 
 let client: LanguageClient;
 let statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
@@ -30,15 +32,27 @@ function showAnalyzingError() {
 }
 
 const dictTreeDataProvider = new DictTreeDataProvider();
+const tagTreeDataProvider = new TagTreeDataProvider();
 
 export function activate(context: vscode.ExtensionContext) {
 	vscode.window.registerTreeDataProvider('shalldnDictionary', dictTreeDataProvider);
+	vscode.window.registerTreeDataProvider('shalldnTags', tagTreeDataProvider);
 
 	vscode.commands.registerCommand('shalldn.dict.reveal', (def: ShalldnTermDef) => 
 	{
 		vscode.window.showTextDocument(vscode.Uri.parse(def.uri,),{
 			selection:def.range
 		})
+	});
+
+	vscode.commands.registerCommand('shalldn.def.reveal', (id: string) => 
+	{
+		client.sendRequest("getDefinition", id)
+			.then((loc: { targetUri: string, targetSelectionRange:vscode.Range})=>{
+			vscode.window.showTextDocument(vscode.Uri.parse(loc.targetUri), {
+				selection: loc.targetSelectionRange
+			})
+		});
 	});
 
 	const serverModule = context.asAbsolutePath(
@@ -96,7 +110,7 @@ export function activate(context: vscode.ExtensionContext) {
 	}
 
 	const ig = ignore();
-	const ignores: string[] = [];
+	const ignores: string[] = ['**/.git'];
 	vscode.workspace.findFiles('**/.gitignore').then(uris=>{
 		// $$Implements Analyzer.GITIGNORE
 		uris.forEach(uri=>{
@@ -126,10 +140,13 @@ export function activate(context: vscode.ExtensionContext) {
 			client.onRequest(new RequestType('analyzeStart'), ()=>{
 				showIndexingStatusBarMessage();				
 			})
-			client.onRequest(new RequestType('analyzeDone'), (terms:string) => {
+			client.onRequest(new RequestType('analyzeDone'), (data:{terms:string, tags:string}) => {
 				statusBarItem.hide();
-				if (terms)
-					dictTreeDataProvider.setItems(JSON.parse(terms));
+				if (data.terms)
+					dictTreeDataProvider.setItems(JSON.parse(data.terms));
+				if (data.tags)
+					tagTreeDataProvider.setItems(JSON.parse(data.tags));
+
 			})
 			client.onNotification("analyze/error",err=>{
 				showAnalyzingError();

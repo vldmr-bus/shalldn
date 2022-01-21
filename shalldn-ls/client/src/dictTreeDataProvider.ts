@@ -41,7 +41,7 @@ export class DictItem extends vscode.TreeItem {
 	contextValue = 'dictItem';
 	command = {
 		command:'shalldn.dict.reveal',
-		title: 'Reveal',
+		title: 'Term definition',
 		arguments: [this.term]
 	};
 }
