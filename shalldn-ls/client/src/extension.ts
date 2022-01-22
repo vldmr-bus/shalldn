@@ -12,8 +12,8 @@ import {
 } from 'vscode-languageclient/node';
 import { DictTreeDataProvider } from './dictTreeDataProvider';
 import ShalldnTermDef from './ShalldnTermDef';
-import { TagTreeItem } from './tagTreeItem';
-import { TagTreeDataProvider } from './tagTreeDataProvider';
+import { TagTreeDataProvider, TagTreeNode } from './tagTreeDataProvider';
+import { Trees } from '../../shared/lib/trees';
 
 let client: LanguageClient;
 let statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
@@ -36,8 +36,8 @@ const tagTreeDataProvider = new TagTreeDataProvider();
 
 export function activate(context: vscode.ExtensionContext) {
 	vscode.window.registerTreeDataProvider('shalldnDictionary', dictTreeDataProvider);
-	vscode.window.registerTreeDataProvider('shalldnTags', tagTreeDataProvider);
-
+	//vscode.window.registerTreeDataProvider('shalldnTags', tagTreeDataProvider);
+	const tagsTreeView = vscode.window.createTreeView('shalldnTags', {treeDataProvider:tagTreeDataProvider,showCollapseAll:true});
 	vscode.commands.registerCommand('shalldn.dict.reveal', (def: ShalldnTermDef) => 
 	{
 		vscode.window.showTextDocument(vscode.Uri.parse(def.uri,),{
@@ -47,12 +47,29 @@ export function activate(context: vscode.ExtensionContext) {
 
 	vscode.commands.registerCommand('shalldn.def.reveal', (id: string) => 
 	{
+		id = id.replace(/^[^.]+\./, '');
 		client.sendRequest("getDefinition", id)
 			.then((loc: { targetUri: string, targetSelectionRange:vscode.Range})=>{
+				if (!loc)
+					return;
 			vscode.window.showTextDocument(vscode.Uri.parse(loc.targetUri), {
 				selection: loc.targetSelectionRange
 			})
 		});
+	});
+
+	vscode.commands.registerCommand('shalldn.expand.all', async (item: TagTreeNode) => {
+		if (typeof item == 'string')
+			return;
+		await Trees.recurseNodesAsync(item, async i=>{
+			await tagsTreeView.reveal(i,{expand:true});
+		});
+	});
+	vscode.commands.registerCommand('shalldnTags.group', () => {
+		tagTreeDataProvider.toggleGrouped();
+	});
+	vscode.commands.registerCommand('shalldnTags.ungroup', () => {
+		tagTreeDataProvider.toggleGrouped();
 	});
 
 	const serverModule = context.asAbsolutePath(

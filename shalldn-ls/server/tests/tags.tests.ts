@@ -6,6 +6,7 @@ import { URI } from 'vscode-uri';
 import '../src/ShalldnProj';
 import ShalldnProj, { AnalyzerPromise } from '../src/ShalldnProj';
 import { Util } from '../src/util';
+import { Trees } from '../../shared/lib/trees'
 
 const root = path.resolve(__dirname,'../../testFixture');
 const project = new ShalldnProj([root]);
@@ -19,7 +20,7 @@ function analyzeFiles(files: string[]): AnalyzerPromise<string[]> {
 	});
 }
 
-let tree:Util.NamespaceTree;
+let tree:Trees.NamespaceTree;
 
 before(async function () {
 	const uris:string[] = [];
@@ -31,31 +32,20 @@ before(async function () {
 });
 
 function assertTag(tagName:string) {
-	let node = tree.find(t => (typeof t != 'string' && t.name == tagName));
+	let node = tree.find(t => typeof t != 'string' && t.id == tagName);
 	assert.notEqual(node, undefined, `There should be tag "${tagName}" in fixture`);
 }
 
-function getIds(ns:Util.NamespaceTree):string[] {
-	let result:string[] = [];
-	ns.forEach(n=>{
-		if (typeof n == 'string')
-			result.push(n);
-		else
-			result.splice(0,0,...getIds(n.items))
-	});
-	return result;
-}
-
 function assertTaggedRq(tagName: string, reqId: string) {
-	let node = tree.find(t => (typeof t != 'string' && t.name == tagName));
+	let node = tree.find(t => typeof t != 'string' && t.id == tagName);
 	if (!node)
 		throw `There should be tag "${tagName}" in fixture`;
 	if (typeof node == 'string') {
 		assert.equal(node,reqId,`Expected requirement id ${reqId}, but found ${node}`);
 		return;
 	}
-	let ids = getIds(node.items);
-	assert.notEqual(ids.find(i=>i==reqId),undefined,`Requirement with id ${reqId} is not tagged with ${tagName}`);
+	let ids = Trees.getLeafs(node.children);
+	assert.notEqual(ids.find(i=>i==`${tagName}.${reqId}`),undefined,`Requirement with id ${reqId} is not tagged with ${tagName}`);
 }
 
 describe('Analyzer', () =>{

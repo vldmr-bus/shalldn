@@ -2,14 +2,13 @@ import ShalldnRqRef from './model/ShalldnRqRef';
 
 import * as path from 'path';
 import * as fs from 'fs';
-import * as fsp from 'fs/promises';
 import * as rx  from 'rxjs';
 import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts';
 import { shalldnLexer } from './antlr/shalldnLexer';
-import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, SentenceContext, shalldnParser, TitleContext } from './antlr/shalldnParser';
+import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, shalldnParser, TitleContext } from './antlr/shalldnParser';
 import { shalldnListener } from './antlr/shalldnListener';
 import { Capabilities } from './capabilities';
-import { DefinitionParams, Diagnostic, DiagnosticSeverity, integer, Location, LocationLink, Position, Range, WorkspaceFolder, _Connection } from 'vscode-languageserver';
+import { integer, Location, LocationLink, Position, Range, _Connection } from 'vscode-languageserver';
 import ShalldnRqDef from './model/ShalldnRqDef';
 import { Util } from './util';
 import LexerErrorListener from './LexerErrorListener';
@@ -21,6 +20,7 @@ import { Interval } from 'antlr4ts/misc/Interval';
 import ShalldnTermDef from './model/ShalldnTermDef';
 import ignore, { Ignore } from 'ignore';
 import { URI } from 'vscode-uri';
+import { Trees } from '../../shared/lib/trees';
 
 class ShalldnProjectRqAnalyzer implements shalldnListener {
 	constructor(
@@ -796,10 +796,11 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 					})
 			})
 		})
-		var result:Util.NamespaceTree = [];
+		var result:Trees.NamespaceTree = [];
 		for (const key of tags) {
-			result.push({name:key[0],items:Util.makeNamespaceTree(key[1])})
+			result.push({id:key[0],children:Trees.makeNamespaceTree(key[1],key[0]+".")})
 		}
+		Trees.sortAndCountNamespaceTree(result);
 		return result;
 	}
 }

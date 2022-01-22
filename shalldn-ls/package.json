@@ -4,7 +4,7 @@
 	"description": "Shalldn requirements language support",
 	"author": "Vladimir Avdonin",
 	"license": "MIT",
-	"version": "0.0.12",
+	"version": "0.0.13",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/vldmr-bus/shalldn"
@@ -61,9 +61,41 @@
 				"command": "shalldn.def.reveal",
 				"title": "Reveal",
 				"icon": "$(symbol-reference)"
+			},
+			{
+				"command": "shalldn.def.reveal",
+				"title": "Reveal",
+				"icon": "$(symbol-reference)"
+			},
+			{
+				"command": "shalldn.expand.all",
+				"title": "Expand All",
+				"icon": "$(expand-all)"
+			},
+			{
+				"command": "shalldnTags.ungroup",
+				"title": "Flat view",
+				"icon": "$(list-flat)"
+			},
+			{
+				"command": "shalldnTags.group",
+				"title": "Tree view",
+				"icon": "$(list-tree)"
 			}
 		],
 		"menus": {
+			"view/title": [
+				{
+					"command": "shalldnTags.ungroup",
+					"group": "navigation@3",
+					"when": "view == shalldnTags && shaldnTags.grouped"
+				},
+				{
+					"command": "shalldnTags.group",
+					"group": "navigation@3",
+					"when": "view == shalldnTags && !shaldnTags.grouped"
+				}
+			],
 			"view/item/context": [
 				{
 					"when": "view == shalldnDictionary && viewItem == dictItem",
@@ -71,8 +103,13 @@
 					"group": "inline"
 				},
 				{
-					"when": "view == shalldnTags && viewItem == tagItem",
+					"when": "view == shalldnTags && viewItem == tagTreeLeaf",
 					"command": "shalldn.def.reveal",
+					"group": "inline"
+				},
+				{
+					"when": "view == shalldnTags && viewItem == tagTreeNode",
+					"command": "shalldn.expand.all",
 					"group": "inline"
 				}
 			]
@@ -98,6 +135,16 @@
 				}
 			]
 		},
+		"viewsWelcome": [
+			{
+				"view": "shalldnDictionary",
+				"contents": "No terms are defined in the project"
+			},
+			{
+				"view": "shalldnTags",
+				"contents": "Requirements preceeded with $Tag will be show here"
+			}
+		],
 		"configuration": {
 			"type": "object",
 			"title": "Shalldn configuration",

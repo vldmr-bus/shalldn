@@ -6,3 +6,4 @@ client/server
 .antlr
 shalldn-ls/server/src/antlr
 shalldn-ls/testFixture
+shalldn-ls/shared/lib
