@@ -59,6 +59,14 @@
 				"cwd": "${workspaceRoot}/shalldn-ls/server"
 			},
 			"label": "antlr4ts"
+		},
+		{
+			"type": "npm",
+			"script": "clean",
+			"path": "shalldn-ls/",
+			"problemMatcher": [],
+			"label": "npm: clean - shalldn-ls",
+			"detail": "del-cli --force ./client/out && del-cli --force ./server/out && del-cli --force ./server/src/antlr"
 		}
 	]
 }

@@ -10,8 +10,7 @@ import { Trees } from '../../shared/lib/trees'
 
 const root = path.resolve(__dirname,'../../testFixture');
 const project = new ShalldnProj([root]);
-const ignores: string[] = [];
-project.setIgnores(ignores);
+project.setIgnores([]);
 
 function analyzeFiles(files: string[]): AnalyzerPromise<string[]> {
 	return project.analyzeFiles(files, (uri: string) => {

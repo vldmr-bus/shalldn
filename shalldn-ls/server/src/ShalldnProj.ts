@@ -18,7 +18,7 @@ import { ParseTreeListener } from 'antlr4ts/tree/ParseTreeListener';
 import { Diagnostics, ShalldnDiagnostic } from './Diagnostics';
 import { Interval } from 'antlr4ts/misc/Interval';
 import ShalldnTermDef from './model/ShalldnTermDef';
-import ignore, { Ignore } from 'ignore';
+import MultIgnore from '../../shared/lib/multignore';
 import { URI } from 'vscode-uri';
 import { Trees } from '../../shared/lib/trees';
 
@@ -300,11 +300,11 @@ export default class ShalldnProj {
 	private Files:Map<string,FileData> = new Map();
 	public diagnostics: Map<string,ShalldnDiagnostic[]> = new Map();
 	private showAllAsWarnings = false;
-	private ignore?:Ignore;
+	private ignore?:MultIgnore;
 
-	public setIgnores(ignores:string[]) {
-		this.ignore = ignore();
-		ignores.forEach(i => this.ignore!.add(i));
+	public setIgnores(ignores:[string,string[]][]) {
+		this.ignore = new MultIgnore();
+		ignores.forEach(ignore => this.ignore!.add(ignore[0],ignore[1]));
 	}
 
 	resetDiagnostics(uri:string) {
@@ -480,9 +480,7 @@ export default class ShalldnProj {
 		if (!this.ignore) // do not analyze opened files at startup until ignores are set
 			return true;
 		let fspath = URI.parse(uri).fsPath;
-		if (this.wsFolders.some(f => this.ignore!.ignores(path.relative(f, fspath))))
-			return true;
-		return false;		
+		return this.ignore.ignores(fspath);
 	}
 
 	// $$Implements Analyzer.PROJECT

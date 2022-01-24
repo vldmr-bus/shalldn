@@ -1,7 +1,8 @@
 import * as path from 'path';
 import { existsSync, readFileSync} from 'fs';
-import ignore from 'ignore';
 import * as vscode from 'vscode';
+import {FsUtil} from '../../shared/lib/fsutil';
+import MultIgnore from '../../shared/lib/multignore';
 
 import {
 	LanguageClient,
@@ -126,20 +127,27 @@ export function activate(context: vscode.ExtensionContext) {
 		exclude: ['png','jpg','gif','dll','jar']
 	}
 
-	const ig = ignore();
-	const ignores: string[] = ['**/.git'];
+	const ignore = new MultIgnore();
+	const ignores: Map<string,string[]> = new Map();
+	vscode.workspace.workspaceFolders.forEach(f=>{
+		ignores.set(f.uri.fsPath, ['**/.git']);
+	})
 	vscode.workspace.findFiles('**/.gitignore').then(uris=>{
 		// $$Implements Analyzer.GITIGNORE
 		uris.forEach(uri=>{
 			if (existsSync(uri.fsPath)) {
-				let txt = readFileSync(uri.fsPath).toString()
-				let pfx = vscode.workspace.asRelativePath(uri).replace(/\/?.gitignore$/,'');
-				if (pfx)
-					txt = txt.replace(/\r/g,'').replace(/^([^#].*)$/gm,`${pfx}$1`);
-				ignores.push(txt);
+				let txt = readFileSync(uri.fsPath).toString();
+				for (let wsf of ignores.keys()) {
+					if (FsUtil.isInside(wsf,uri.fsPath)) {
+						let pfx = path.relative(wsf,uri.fsPath).replace(/\/?.gitignore$/, '');
+						if (pfx)
+							txt = txt.replace(/\r/g, '').replace(/^([^#].*)$/gm, `${pfx}$1`);
+						ignores.get(wsf).push(txt);
+					}
+				}
 			}
 		})
-		ignores.forEach(txt => ig.add(txt));
+		ignores.forEach((lines,path) => ignore.add(path,lines));
 
 		let include = `**/*.{${files.include.join(',') || '*'}}`;
 		let exlude = `**/*.{${files.exclude.join(',') || undefined}}`;
@@ -149,7 +157,7 @@ export function activate(context: vscode.ExtensionContext) {
 		// $$Implements Analyzer.PROJECT
 		var uris: string[] = [];
 		files.forEach(uri => {
-			if (!ig.ignores(vscode.workspace.asRelativePath(uri.fsPath)))
+			if (!ignore.ignores(uri.fsPath))
 				uris.push(uri.toString());
 		});
 
@@ -171,7 +179,7 @@ export function activate(context: vscode.ExtensionContext) {
 					console.log("Shalldn failed analyzing files in workspace: "+err.toString());
 			})
 
-			client.sendRequest("ignoreFiles", ignores);
+			client.sendRequest("ignoreFiles", [...ignores]);
 			client.sendRequest("analyzeFiles", {
 				files: uris,
 			});

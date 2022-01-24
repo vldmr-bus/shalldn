@@ -29,7 +29,6 @@ function analyzeFiles(files: string[]): AnalyzerPromise<string[]> {
 	});
 }
 
-const ignore = ignorer.default();
 const ignores: string[] = [];
 Util.findFiles(root, /\.gitignore$/,fpath=>{
 	let txt = fs.readFileSync(fpath).toString();
@@ -38,10 +37,9 @@ Util.findFiles(root, /\.gitignore$/,fpath=>{
 		txt = txt.replace(/\r/g, '').replace(/^([^#].*)$/gm, `${pfx}$1`);
 	ignores.push(txt);
 })
-ignores.forEach(txt => ignore.add(txt));
 
 const project = new ShalldnProj([root]);
-project.setIgnores(ignores);
+project.setIgnores([[root,ignores]]);
 
 const uris:string[] = [];
 Util.findFiles(root, /\.shalldn/,(f)=>uris.push(URI.file(path.resolve(root,f)).toString()));

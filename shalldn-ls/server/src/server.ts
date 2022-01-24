@@ -326,8 +326,8 @@ connection.onRequest(analyzeFilesRequest, (data) => {
 	);
 });
 
-var ignoreFiles: RequestType<string[], any, any> = new RequestType("ignoreFiles");
-connection.onRequest(ignoreFiles, (ignores:string[]) => project.setIgnores(ignores));
+var ignoreFiles: RequestType<[string,string[]][], any, any> = new RequestType("ignoreFiles");
+connection.onRequest(ignoreFiles, (ignores:[string,string[]][]) => project.setIgnores(ignores));
 
 // $$Implements Editor.ERR_DEMOTE
 var toggleErrWarn: RequestType<boolean, any, any> = new RequestType("toggleErrWarn");
