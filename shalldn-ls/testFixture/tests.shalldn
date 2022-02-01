@@ -3,12 +3,12 @@
 ## Group implementation example
 * Implements **section of informal requirements**
 
-$Tags.Tag1 $Tags.Tag2
+$Tags_Tag1 $Tags_Tag2
 **Test.Parser.IMPLMNT_GRP.Link**
 The *implementation clause* at heading of the section containing this requirement **shall** be linked to the heading in the document "test-informal.shalldn".
 
 ### Sub-section is still included in group implementation
-$Tags.Tag1
+$Tags_Tag1
 **Test.Parser.IMPLMNT_GRP.References**
 All requirements in the same section as this requirement **shall** be included in the list of references for the heading "A *section of informal requirements*" in the document "test-informal.shalldn".
 
@@ -18,7 +18,7 @@ All requirements in the same section as this requirement **shall** be included i
 The *implementation clause* of this requirement **shall** have a link to the section in the document "test-informal.shalldn".
 * Implements **sub-section of informal requirements**
 
-$Tags.Tag2
+$Tags_Tag2 $Tag_With_Value: This is the value of last tag
 **Test.Parser.WARN_RTNL**
 The id of this requirement **shall** be marked with error "Requirement Test.Parser.WARN_RTNL is justified only by its rationale and by none of higher level requirements".
 * Rationale: need this to test Parser.WARN_RTNL.

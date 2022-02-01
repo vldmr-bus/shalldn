@@ -56,7 +56,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		};
 		let tags = ctx.tag();
 		if (tags)
-			def.tags = tags.map(t=>t.text.substring(1));
+			def.tags = [...new Set<string>(tags.map(t=>t._id.text||'Invalid tag'))];
 		try {
 			this.proj.addRequirement(def);
 			//$$Implements Parser.ERR_NO_SUBJ

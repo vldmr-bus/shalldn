@@ -22,7 +22,7 @@ SHALL: ('**' 'shall' '**'| '__' 'shall' '__') ;
 NB: '*(n.b.)*';
 URL: [hH][tT][tT][pP][sS]? '://' [a-zA-Z0-9.&?/_\-+=]+ ;
 
-tag: '$' (WORD|IDENTIFIER);
+tag: '$' id=WORD (':' value=~'\n'+ )?;
 bolded_id: ('**' (WORD|IDENTIFIER) '**' | '__' (WORD|IDENTIFIER) '__') ;
 sentence_stop: '.'|';'|'!'|'?';
 punctuation: ','|'_'|'-'|':'|'('|')'|'['|']'|'/'|'$'|'<'|'>'|'='|'&'|'\''|'@'|'#'|'“'|'”'|'’';
@@ -34,7 +34,7 @@ def_drct: subject = italiced_phrase ('*(i.e.' body = phrase ')*'|'_(i.e.' body =
 def_rev: body = italiced_phrase ('*(' subject = phrase ')*'|'_(' subject = phrase ')_') ;
 phrase: (plain_phrase|italiced_phrase|bolded_phrase|nota_bene|def_drct|def_rev|punctuation)+;
 
-// $$Implements Parser.DOC_Subject
+// $$Implements Parser.DOC_Subject, Parser.TAGGED_VALUE_RQ
 title: '#'? phrase* subject = italiced_phrase WORD* list? ;
 hashes: HASH+;
 heading: '\n'*hashes phrase list?;

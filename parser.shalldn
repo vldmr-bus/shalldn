@@ -6,7 +6,10 @@ Definition of the Shalldn *parser*
 The parser **shall** recognize a sentence as a requirement if the sentence is preceded by a *separately bolded* *(i.e. surrounded by bold markdown immediately on both sides)* *identifier* *(i.e. a contiguous group of alphanumeric, '_' and '.' characters)* and includes the document subject followed by *separately bolded* word "shall". 
 
 **Parser.TAGGED_RQ**
-The parser **shall** recognize a requirement as *tagged requirement* *(n.b.)* when it is preceded by one or more *identifier* prefixed with $ character, with each of the identifiers recognized as a *tag* *(n.b.)* of the requirement.
+The parser **shall** recognize a requirement as *tagged requirement* *(n.b.)* when it is preceded by one or more words each prefixed with $ character, with each of the words recognized as a *tag* *(n.b.)* of the requirement.
+
+**Parser.TAGGED_VALUE_RQ**
+The parser **shall** ignore all text between colon character and end of line when the text immediately follows a *tag* of a requirement.
 
 **Parser.DOC_Subject**  
 The parser **shall** use the only italicized group of words in the title of the document file as the document subject.

@@ -48,13 +48,15 @@ function assertTaggedRq(tagName: string, reqId: string) {
 }
 
 describe('Analyzer', () =>{
-	it ('shall find 2 tags in test fixture',()=>{
-		assert.equal(tree.length,2,"There should be 2 tags requirements in fixture");
+	it ('shall find 3 tags in test fixture',()=>{
+		assert.equal(tree.length,3,"There should be 3 tags requirements in fixture");
 	});
-	it('shall find "Tags.Tag1" in test fixture', () => assertTag("Tags.Tag1"));
-	it('shall find "Tags.Tag2" in test fixture', () => assertTag("Tags.Tag2"));
-	it('shall find requirement id "Test.Parser.IMPLMNT_GRP.Link" tagged with "Tags.Tag1" in test fixture', () => assertTaggedRq("Tags.Tag1","Test.Parser.IMPLMNT_GRP.Link"));
-	it('shall find requirement id "Test.Parser.IMPLMNT_GRP.Link" tagged with "Tags.Tag2" in test fixture', () => assertTaggedRq("Tags.Tag2","Test.Parser.IMPLMNT_GRP.Link"));
-	it('shall find requirement id "Test.Parser.IMPLMNT_GRP.References" tagged with "Tags.Tag1" in test fixture', () => assertTaggedRq("Tags.Tag2","Test.Parser.IMPLMNT_GRP.Link"));
-	it('shall find requirement id "Test.Parser.WARN_RTNL" tagged with "Tags.Tag2" in test fixture', () => assertTaggedRq("Tags.Tag2","Test.Parser.IMPLMNT_GRP.Link"));
+	it('shall find "Tags_Tag1" in test fixture', () => assertTag("Tags_Tag1"));
+	it('shall find "Tags_Tag2" in test fixture', () => assertTag("Tags_Tag2"));
+	it('shall find "Tag_With_Value" in test fixture', () => assertTag("Tag_With_Value"));
+	it('shall find requirement id "Test.Parser.IMPLMNT_GRP.Link" tagged with "Tags_Tag1" in test fixture', () => assertTaggedRq("Tags_Tag1","Test.Parser.IMPLMNT_GRP.Link"));
+	it('shall find requirement id "Test.Parser.IMPLMNT_GRP.Link" tagged with "Tags_Tag2" in test fixture', () => assertTaggedRq("Tags_Tag2","Test.Parser.IMPLMNT_GRP.Link"));
+	it('shall find requirement id "Test.Parser.IMPLMNT_GRP.References" tagged with "Tags_Tag1" in test fixture', () => assertTaggedRq("Tags_Tag2","Test.Parser.IMPLMNT_GRP.Link"));
+	it('shall find requirement id "Test.Parser.WARN_RTNL" tagged with "Tags_Tag2" in test fixture', () => assertTaggedRq("Tags_Tag2","Test.Parser.IMPLMNT_GRP.Link"));
+	it('shall find requirement id "Test.Parser.WARN_RTNL" tagged with "Tag_With_Value" in test fixture', () => assertTaggedRq("Tag_With_Value","Test.Parser.WARN_RTNL"));
 });
