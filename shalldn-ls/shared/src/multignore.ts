@@ -16,7 +16,7 @@ export default class MultIgnore {
 				this.theTester = it;
 			}
 		}
-		ignores.forEach(l=>it?.add(l.replace(/\r/g,'').split('\n')))
+		ignores.forEach(l => it?.add(l.replace(/\r/g, '').replace(/\\/g, '/').split('\n').filter(s=>!s.startsWith('#'))))
 	}
 
 	public ignores(apath:string): boolean {
