@@ -26,16 +26,16 @@ Feature: Parser
 
 	Scenario: Parser.ERR_NO_JSTFCTN with existing file
 	# Existing file having requirement without implementation generates "Not implemented" error
-	Given the test file named "tests.shalldn" with requirement id "Test.Editor.ERR_NOIMPL"
-	Then editor problems shall include problem with the text:
+	Given the test file named "tests.shalldn" with requirement id "Test.Editor.INFO_NOIMPL"
+	Then editor problems shall include error with the text:
 	"""
-	Requirement Test.Editor.ERR_NOIMPL does not have any justification
+	Requirement Test.Editor.INFO_NOIMPL does not have any justification
 	"""
 
 	Scenario: Parser.WARN_RTNL with existing file
 	# Existing file having requirement without implementation generates "Not implemented" error
 	Given the test file named "tests.shalldn" with requirement id "Parser.WARN_RTNL"
-	Then editor problems shall include problem with the text:
+	Then editor problems shall include warning with the text:
 	"""
 	Requirement Test.Parser.WARN_RTNL is justified only by its rationale and by none of higher level requirements
 	"""

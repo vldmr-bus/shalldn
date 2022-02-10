@@ -23,5 +23,5 @@ $Tags_Tag2 $Tag_With_Value: This is the value of last tag
 The id of this requirement **shall** be marked with error "Requirement Test.Parser.WARN_RTNL is justified only by its rationale and by none of higher level requirements".
 * Rationale: need this to test Parser.WARN_RTNL.
 
-**Test.Editor.ERR_NOIMPL**
+**Test.Editor.INFO_NOIMPL**
 The id of this requirement **shall** be marked with error "Requirement Test.Editor.ERR_NOIMPL does not have implementation".

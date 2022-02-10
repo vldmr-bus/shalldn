@@ -45,4 +45,8 @@ export namespace Diagnostics {
 		return diagnostic(DiagnosticSeverity.Warning, message, start, end);
 	}
 
+	export function info(message: string, start: Position|Range, end?: Position): ShalldnDiagnostic {
+		return diagnostic(DiagnosticSeverity.Information, message, start, end);
+	}
+
 }

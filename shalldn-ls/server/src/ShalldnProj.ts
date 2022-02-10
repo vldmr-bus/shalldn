@@ -442,7 +442,7 @@ export default class ShalldnProj {
 		this.Files.delete(uri);
 	}
 
-	// $$Implements Analyzer.ERR_NOIMPL_TGT
+	// $$Implements Analyzer.INFO_NOIMPL_TGT
 	checkRefsTargets(fileData:FileData, uri:string) {
 		fileData.RqRefs.forEach(ref => {
 			let defs = this.RqDefs.get(ref.id);
@@ -493,7 +493,7 @@ export default class ShalldnProj {
 		else
 			this.analyzeNonRqFile(uri,text);
 
-		// $$Implements Editor.ERR_NOIMPL, Editor.ERR_NOIMPL_DOC, Editor.ERR_NO_IMPLMNT_TGT, Editor.ERR_NO_IMPLMNT_TGT
+		// $$Implements Editor.INFO_NOIMPL, Editor.INFO_NOIMPL_DOC, Editor.ERR_NO_IMPLMNT_TGT, Editor.ERR_NO_IMPLMNT_TGT
 		this.connection?.sendDiagnostics({ uri, diagnostics:this.getDiagnostics(uri) });
 	}
 
@@ -531,19 +531,19 @@ export default class ShalldnProj {
 					if (!refs || refs.length==0)
 						noimp.push({ id: def.id, idRange:def.idRange})
 				});
-				if (noimp.length == fileData.RqDefs.length) // $$Implements Analyzer.ERR_NOIMPL_DOC
+				if (noimp.length == fileData.RqDefs.length) // $$Implements Analyzer.INFO_NOIMPL_DOC
 					this.addDiagnostic(
 						uri,
-						Diagnostics.error(`No requirement in the document has implementation`, analyzer.titleRange??Util.lineRangeOfPos({line:0,character:0}))
+						Diagnostics.info(`No requirement in the document has implementation`, analyzer.titleRange??Util.lineRangeOfPos({line:0,character:0}))
 					);
-				else if (noimp.length) // $$Implements Analyzer.ERR_NOIMPL
+				else if (noimp.length) // $$Implements Analyzer.INFO_NOIMPL
 					noimp.forEach(v => this.addDiagnostic(
 						uri,
-						Diagnostics.error(`Requirement ${v.id} does not have implementation`, v.idRange)
+						Diagnostics.info(`Requirement ${v.id} does not have implementation`, v.idRange)
 					));
 			}
 
-			// $$Implements Analyzer.ERR_NOIMPL_TGT
+			// $$Implements Analyzer.INFO_NOIMPL_TGT
 			this.checkRefsTargets(fileData, uri);
 		}
 	}
@@ -577,7 +577,7 @@ export default class ShalldnProj {
 			});
 		}
 
-		if (!firstPass) // $$Implements Analyzer.ERR_NOIMPL_TGT
+		if (!firstPass) // $$Implements Analyzer.INFO_NOIMPL_TGT
 			this.checkRefsTargets(fileData,uri);
 
 	}

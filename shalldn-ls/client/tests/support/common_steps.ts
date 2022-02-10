@@ -38,8 +38,14 @@ async function enterText(this:Test, text:string){
 	await helpers.sleep(800);
 })
 
-Then(/editor problems shall include problem (?:for the words "([^"]+)" )?with the text:/, 
-async function verifyProblem(this:Test, words:string|undefined, text:string){
+
+const severities: { [id: string]: vscode.DiagnosticSeverity} = { 
+	'error': vscode.DiagnosticSeverity.Error,
+	'warning': vscode.DiagnosticSeverity.Warning,
+	'info': vscode.DiagnosticSeverity.Information,
+}
+Then(/editor problems shall include (error|warning|info) (?:for the words "([^"]+)" )?with the text:/, 
+async function verifyProblem(this:Test, severity:string, words:string|undefined, text:string){
 	text = helpers.expandTextVariables(text, this);
 	if (!this.docUri)
 		assert.fail('The test step does not have a required document')
@@ -47,6 +53,7 @@ async function verifyProblem(this:Test, words:string|undefined, text:string){
 
 	let problem = actualDiagnostics.find(d=>d.message==text);
 	assert.notEqual(problem,undefined, `Problem not found with text "${text}"`);
+	assert.equal(problem?.severity, severities[severity]??-1, `Expected "${severity}" severity of problem`);
 	if (words) {
 		let actual = helpers.getText(problem!.range);
 		assert.equal(actual,words,"Wrong target text of the problem");
