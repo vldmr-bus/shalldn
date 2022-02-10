@@ -15,6 +15,7 @@ import { DictTreeDataProvider } from './dictTreeDataProvider';
 import ShalldnTermDef from './ShalldnTermDef';
 import { TagTreeDataProvider, TagTreeNode } from './tagTreeDataProvider';
 import { Trees } from '../../shared/lib/trees';
+import { map } from 'rxjs';
 
 let client: LanguageClient;
 let statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
@@ -141,7 +142,12 @@ export function activate(context: vscode.ExtensionContext) {
 					if (FsUtil.isInside(wsf,uri.fsPath)) {
 						let pfx = path.relative(wsf,uri.fsPath).replace(/\/?.gitignore$/, '');
 						if (pfx)
-							txt = txt.replace(/\r/g, '').replace(/^([^#].*)$/gm, `${pfx}$1`);
+							txt = txt
+								.replace(/\r/g, '')
+								.split('\n')
+								.filter(s => !s.startsWith('#') && s.trim().length != 0)
+								.map(s=>pfx+s)
+								.join('\n');
 						ignores.get(wsf).push(txt);
 					}
 				}
