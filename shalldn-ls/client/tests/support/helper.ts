@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import Test from './test';
-
+import * as path from "path";
 export namespace helpers {
     export let doc: vscode.TextDocument;
     export let editor: vscode.TextEditor;
@@ -59,6 +59,12 @@ export namespace helpers {
     export async function getDocText(l:vscode.Location|vscode.LocationLink) {
         let doc = await vscode.workspace.openTextDocument(('uri' in l) ? l.uri : l.targetUri);
         return doc.getText(('uri' in l) ? l.range : l.targetRange);
+    }
+
+    export function getExtName(l: vscode.Location | vscode.LocationLink) {
+        let uri = ('uri' in l) ? l.uri : l.targetUri;
+
+        return path.extname(uri.fsPath);
     }
 
     export function getText(r:vscode.Range) {

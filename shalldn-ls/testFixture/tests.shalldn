@@ -18,6 +18,10 @@ All requirements in the same section as this requirement **shall** be included i
 The *implementation clause* of this requirement **shall** have a link to the section in the document "test-informal.shalldn".
 * Implements **sub-section of informal requirements**
 
+**Test.Analyzer.CMNT_IMPLMNT**
+This requirement **shall** have reference from non-requirement file.
+* Rationale: this tests multiple ids in implementation clause.
+
 $Tags_Tag2 $Tag_With_Value: This is the value of last tag
 **Test.Parser.WARN_RTNL**
 The id of this requirement **shall** be marked with error "Requirement Test.Parser.WARN_RTNL is justified only by its rationale and by none of higher level requirements".

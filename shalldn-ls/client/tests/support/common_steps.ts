@@ -97,3 +97,36 @@ function checkNoError(this:Test, text:string){
 	let problem = actualDiagnostics.find(d => d.message == text);
 	assert.strictEqual(problem, undefined, `Problem found with text "${text}"`);
 })
+
+When(/list of references is obtained for the word "(\w+)" in following text:/,
+async function getReferences(this:Test,word:string,text:string){
+	let range = helpers.getTextPosition(text,word);
+	this.locLinks = (await vscode.commands.executeCommand(
+		'vscode.executeReferenceProvider',
+		this.docUri,
+		helpers.midRange(range)
+	)) as Array<vscode.Location|vscode.LocationLink>;
+})
+
+Then(/the list shall contain reference from the file "(.*)" with id "(.*)"/,
+async function checkreference(this:Test,file:string,id:string) {
+	if (!this.locLinks)
+		assert.fail('The test step does not have a list of locations')
+	let fileLocations = this.locLinks.filter(l=>
+		(('uri'in l)?l.uri:l.targetUri).toString().endsWith(file)
+	);
+	let locations: (vscode.LocationLink|vscode.Location)[]=[];
+	for (let loc of fileLocations) {
+		let text = await helpers.getDocText(loc);
+		if (helpers.getExtName(loc).toLowerCase() == '.shalldn') {
+			let actual = text.trim().replace(/^(?:.*\n)?\*\*([\w.]+)\*\*.*$/ms, '$1');
+			if (id == actual)
+				locations.push(loc);
+		} else {
+			if (text == id)
+				locations.push(loc);
+		}
+	}
+	assert.equal(locations.length,1,`The file ${file} shall have reference with id "${id}"`);
+})
+

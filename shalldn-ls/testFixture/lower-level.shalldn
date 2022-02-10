@@ -2,4 +2,4 @@
 
 **lower.level**
 This requirement **shall** implement some upper level requirement.
-* Implements **Test.Parser.IMPLMNT_INDVDL**
+* Implements **Test.Parser.IMPLMNT_INDVDL**, **Test.Analyzer.CMNT_IMPLMNT**
