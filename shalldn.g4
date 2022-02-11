@@ -17,6 +17,7 @@ SEMI:';';
 QUOTED_FRAGMENT: '"' ~["\n]+? '"'|'\'' ~['\n]+? '\'';
 CODE_FRAGMENT: '`' ~[`\n]+? '`';
 CODE_BLOCK: '```' .+? '```';
+TABLE_ROW: '|' ~[\n]+ '|';
 NUMBER: [0-9]+ ('.' [0-9]+)? ;
 WORD: WORD_CHAR+;
 IDENTIFIER : WORD ('.' WORD)+ ; // *(see identifier)*
@@ -49,4 +50,4 @@ ul_element: STAR l_element ;
 ol_element: NUMBER '.'? l_element ;
 list: ('\n'+(ul_element|ol_element|implmnt))+;
 sentence: phrase sentence_stop;
-document: '\n'* title (heading|requirement|sentence|CODE_BLOCK|(phrase ':'|heading)? list|'\n'+)+ EOF;
+document: '\n'* title (heading|requirement|sentence|CODE_BLOCK|TABLE_ROW|(phrase ':'|heading)? list|'\n'+)+ EOF;
