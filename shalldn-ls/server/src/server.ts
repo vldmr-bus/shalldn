@@ -12,21 +12,27 @@ import {
 	InitializeResult,
 	RequestType,
 	FileChangeType,
-	TextDocumentChangeEvent} from 'vscode-languageserver/node';
+	TextDocumentChangeEvent,
+	TextDocumentPositionParams,
+	CompletionItem,
+	CompletionItemKind,
+	TextEdit} from 'vscode-languageserver/node';
 
 import {
+	Position,
 	TextDocument
 } from 'vscode-languageserver-textdocument';
 
 import { Diagnostics } from './Diagnostics';
 import { Util } from './util';
 import ShalldnProj, { AnalyzerPromise } from './ShalldnProj';
-import { URI } from 'vscode-uri';
+import { URI, Utils } from 'vscode-uri';
 
 import {from, lastValueFrom, mergeMap} from 'rxjs';
 import * as fs from 'fs/promises';
 import { Capabilities } from './capabilities';
 import e = require('express');
+import path = require('path');
 
 var debug = /--inspect/.test(process.execArgv.join(' '))
 
@@ -63,7 +69,10 @@ connection.onInitialize((params: InitializeParams) => {
 		capabilities: {
 			textDocumentSync: TextDocumentSyncKind.Incremental,
 			definitionProvider: true,
-			referencesProvider: true
+			referencesProvider: true,
+			completionProvider: {
+				triggerCharacters: ['.','*'],
+			}
 		}
 	};
 	if (cpblts.WorkspaceFolder) {
@@ -310,6 +319,116 @@ connection.onReferences((params)=>{
 	});
 
 })
+
+function partialMatch(text:string, fragment: string, ilen?:number): number {
+	ilen = ilen||3;
+	if (text.length<ilen || fragment.length<ilen)
+		return -1;
+	let i =  Util.range(ilen, fragment.length).findIndex(i => text.match(new RegExp(`(?:^|\\s)${Util.escapeRegExp(fragment.substring(0, i))}$`)));
+	return (i<0)?-1:i+ilen;
+}
+
+function fragmentCompletion(text: string, fragment: string, p:Position, ilen?:number, kind?: CompletionItemKind): CompletionItem|null {
+	let res: CompletionItem|null = null;
+	let matchLen = fragment && partialMatch(text, fragment, ilen) || -1;
+	if (matchLen > 0) {
+		res = {
+			label: fragment,
+			kind: kind || CompletionItemKind.Keyword,
+			textEdit: TextEdit.insert(p, fragment.substring(matchLen)+" ")
+		};
+	}
+	return res;
+}
+
+connection.onCompletion(
+	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
+		let res: CompletionItem[] = [];
+		const document = documents.get(_textDocumentPosition.textDocument.uri);
+		const p = _textDocumentPosition.position;
+		let range = Util.lineRangeOfPos(p);
+		let text = document?.getText(range).trimEnd() || '';
+
+		if (!document || !text)
+			return res;
+
+		const pfx = text.substring(0, p.character);
+		const isrq = isRqDoc(document);
+
+		// $$Implements Editor.CMPL_SUBJ
+		const subj = isrq && project.getSubject(_textDocumentPosition.textDocument.uri) || "";
+		let c = fragmentCompletion(pfx,subj,p);
+		if (c)
+			res.push(c);
+
+		// $$Implements Editor.CMPL_KW_NREQ
+		c = !isrq && fragmentCompletion(pfx, "$$Implements", p, 2) || null;
+		if (c)
+			res.push(c);
+
+		// $$Implements Editor.CMPL_KW_REQ
+		c = isrq && fragmentCompletion(pfx, "* Implements", p) || null;
+		if (c)
+			res.push(c);
+
+		c = isrq && fragmentCompletion(pfx, "**shall**", p) || null;
+		if (c)
+			res.push(c);
+
+		// $$Implements Editor.CMPL_IMPL_NREQ
+		let m = !isrq && pfx.match(/\$\$Implements.+?\b(\w[\w.]*)$/) || null;
+		if (m)
+			project.getIdsByPfx(m[1]).forEach(id=>{
+				res.push({
+					label: id,
+					kind: CompletionItemKind.Keyword,
+					textEdit: TextEdit.insert(p,id.substring(m![1].length)),
+					// $$Implements Editor.CMPL_NS_ORD
+					sortText: id.endsWith('.')?'0000000000'.substring(id.replace(/[^.]+/g, '').length)+id:id
+				})
+			});
+
+		// $$Implements Editor.CMPL_IMPL_REQ
+		m = isrq && pfx.match(/^\s*\*\s+Implements\s.*\*\*(\w[\w.]*)$/) || null;
+		if (m)
+			project.getIdsByPfx(m[1]).forEach(id => {
+				res.push({
+					label: id,
+					kind: CompletionItemKind.Keyword,
+					textEdit: TextEdit.insert(p, id.substring(m![1].length)+'**'),
+					// $$Implements Editor.CMPL_NS_ORD
+					sortText: id.endsWith('.') ? '0000000000'.substring(id.replace(/[^.]+/g, '').length) + id : id
+				});
+			});
+		
+		// $$Implements Editor.CMPL_ID_REQ
+		m = isrq && pfx.match(/^\s*\*\*(\w[\w.]*)$/) || null;
+		if (m)
+			project.getIdsByPfxForFile(m[1], document.uri).forEach(id=>{
+				res.push({
+					label: id,
+					kind: CompletionItemKind.Keyword,
+					textEdit: TextEdit.insert(p,id.substring(m![1].length)),
+					// $$Implements Editor.CMPL_NS_ORD
+					sortText: id.endsWith('.') ? '0000000000'.substring(id.replace(/[^.]+/g, '').length) + id : id
+				});
+			});
+
+		// $$Implements Editor.CMPL_DEFS
+		m = isrq && pfx.match(/[^*]\*(\w[^*]*)$/) || null;
+		if (m)
+			project.getDefsByPfx(m[1]).forEach(t => {
+				res.push({
+					label: t,
+					kind: CompletionItemKind.Keyword,
+					textEdit: TextEdit.insert(p, t.substring(m![1].length)+'*')
+				});
+			});
+
+		return res;
+	}
+);
+
 
 
 // $$Implements Analyzer.PROJECT

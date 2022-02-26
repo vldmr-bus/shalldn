@@ -5,4 +5,5 @@ export default interface Test {
 	thatId: string;
 	newFile?: boolean;
 	locLinks: (vscode.Location | vscode.LocationLink)[]|undefined;
+	complList: vscode.CompletionList|undefined;
 }

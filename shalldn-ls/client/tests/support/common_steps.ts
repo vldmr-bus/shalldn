@@ -130,3 +130,38 @@ async function checkreference(this:Test,file:string,id:string) {
 	assert.equal(locations.length,1,`The file ${file} shall have reference with id "${id}"`);
 })
 
+When('the list of completion proposals is requested for current position',
+async function requestCompletions(this:Test) {
+	if (!vscode.window.activeTextEditor)
+		assert.fail('No active editor ');
+	if (!vscode.window.activeTextEditor.selection)
+		assert.fail('No active selection in editor');
+	let position = vscode.window.activeTextEditor.selection.active;
+	this.complList = (await vscode.commands.executeCommand(
+		'vscode.executeCompletionItemProvider',
+		this.docUri,
+		position,
+	)) as vscode.CompletionList;
+})
+
+Then(/the list of proposals shall (not |)include the following entries( in given order|):/,
+	function checkCompletions(this: Test, not:string, checkOrder:string, text: string) {
+		if (!this.complList)
+			assert.fail('The test step does not have a list of completions')
+		let items = text.split('\n');
+		let lastIdx = -1;
+		items.forEach((it,i)=>{
+			let entry = this.complList!.items.find(c=>c.label == it);
+			if (not)
+				assert.equal(entry,undefined,`Item '${it}' was not expected in list of comletions`);
+			else {
+				assert.notEqual(entry,undefined,`Item '${it}' was not found in list of comletions`);
+				if (checkOrder) {
+					let idx = this.complList!.items.indexOf(entry!);
+					assert.equal(idx > lastIdx, true, `Item '${it}' is before item ${items[lastIdx]}`);
+					lastIdx = idx;
+				}
+			}
+		})
+	})
+

@@ -1,5 +1,5 @@
-# Document for lower-level *requirement* tests
+# Document for *lower-level requirement* tests
 
-**lower.level**
-This requirement **shall** implement some upper level requirement.
+**The.lower.level**
+This lower-level requirement **shall** implement some upper level requirement.
 * Implements **Test.Parser.IMPLMNT_INDVDL**, **Test.Analyzer.CMNT_IMPLMNT**

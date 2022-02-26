@@ -9,5 +9,19 @@
 	"cucumberautocomplete.steps": [
 		"shalldn-ls/client/tests/support/*.ts"
 	],
-	"git.autofetch": "all"
+	"git.autofetch": "all",
+	"spellright.language": [
+		"en"
+	],
+	"spellright.documentTypes": [
+		"markdown",
+		"latex",
+		"plaintext",
+		"shalldn"
+	],
+	"spellright.parserByClass": {
+		"shalldn": {
+			"parser": "markdown"
+		}
+	}
 }

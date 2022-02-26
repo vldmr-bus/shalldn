@@ -285,6 +285,7 @@ class FileData {
 	public RqRefs: ShalldnRqRef[] = [];
 	public RqDefs: ShalldnRqDef[] = [];
 	public TermDefs: ShalldnTermDef[]|undefined;
+	public subject?: string;
 }
 
 export default class ShalldnProj {
@@ -523,6 +524,8 @@ export default class ShalldnProj {
 					.addRelated('The subject of the document is defined by the only italicized group of words in the first line of the document')
 			);
 
+		fileData.subject = analyzer.subject;
+
 		if (!firstPass) {
 			if (fileData.RqDefs.length) {
 				let noimp:{id:string,idRange:Range}[] = [];			
@@ -689,7 +692,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 	public getAllTerms(): ShalldnTermDef[] {
 		let res: ShalldnTermDef[]=[];
 		for (let defs of this.TermDefs.values()) {
-			res = res.concat(defs);
+			res.push(...defs);
 		}
 		res.sort((a, b) => a.subj.localeCompare(b.subj));
 		return res;
@@ -801,6 +804,39 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		Trees.sortAndCountNamespaceTree(result);
 		return result;
 	}
+
+	public getSubject(uri:string) {
+		const fileData = this.Files.get(uri);
+		return fileData&&fileData.subject;
+	}
+
+	public getIdsByPfx(pfx:string, defs?:IterableIterator<string>) {
+		defs = defs || this.RqDefs.keys();
+		let ids:string[]=[];
+		for (const id of defs)
+			if (id.startsWith(pfx))
+				ids.push(id);
+		let ns = Trees.makeNamespaceTree(ids);
+		Trees.flattenTo(ids,ns);
+		let s =new Set<string>(ids);
+		let l = pfx.length;
+		return [...s].filter(s=>s.length>l);
+	}
+
+	public getIdsByPfxForFile(pfx:string, uri: string) {
+		const fileData = this.Files.get(uri);
+		if (!fileData || !fileData.RqDefs)
+			return [];
+		return this.getIdsByPfx(pfx,fileData.RqDefs.map(d=>d.id).values());
+	}
+
+	public getDefsByPfx(pfx:string) {
+		let terms = [];
+		let lpfx = pfx.toLocaleLowerCase()
+		for (const t of this.TermDefs.keys())
+			if (t.startsWith(lpfx) || t.startsWith(pfx)) {
+				terms.push(pfx+t.substring(pfx.length))
+			}
+			return terms;
+	}
 }
-
-

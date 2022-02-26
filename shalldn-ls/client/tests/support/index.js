@@ -31,7 +31,10 @@ exports.run = async function run() {
 	try {
 		let result = await cli.run();
 	} catch (error) {
-		console.log(error);
-	}
+		if (error.message)
+			console.log(error.message);
+		else
+			console.log(error);
+	} 
 
 }

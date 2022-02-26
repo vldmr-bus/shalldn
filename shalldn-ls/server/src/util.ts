@@ -75,4 +75,11 @@ export namespace Util {
 		};
 	}
 
+	export function range(start:number, end:number) {
+		return Array.from({ length: end - start + 1 }, (_, i) => start+i)
+	}
+
+	export function escapeRegExp(s:string) {
+		return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	}
 }

@@ -79,3 +79,159 @@ Feature: Editor
     """
     No requirement in the document has implementation
     """
+
+    @discard_changes
+    Scenario: Editor.CMPL_SUBJ
+    Given the test file named "lower-level.shalldn" is opened
+    When the text below is appended to the end of the file
+    """
+    A low
+    """
+    And the list of completion proposals is requested for current position
+    Then the list of proposals shall include the following entries:
+    """
+    lower-level requirement
+    """
+
+    @discard_changes
+    Scenario: Editor.CMPL_KW_REQ Implements
+    Given the test file named "lower-level.shalldn" is opened
+    When the text below is appended to the end of the file
+    """
+    * I
+    """
+    And the list of completion proposals is requested for current position
+    Then the list of proposals shall include the following entries:
+    """
+    * Implements
+    """
+
+    @discard_changes
+    Scenario: Editor.CMPL_KW_REQ shall
+    Given the test file named "lower-level.shalldn" is opened
+    When the text below is appended to the end of the file
+    """
+    A lower-level requirement **s
+    """
+    And the list of completion proposals is requested for current position
+    Then the list of proposals shall include the following entries:
+    """
+    **shall**
+    """
+
+    @discard_changes
+    Scenario: Editor.CMPL_KW_NREQ
+    Given the test file named "non-requirement.txt" is opened
+    When the text below is appended to the end of the file
+    """
+    -- $$I
+    """
+    And the list of completion proposals is requested for current position
+    Then the list of proposals shall include the following entries:
+    """
+    $$Implements
+    """
+
+    @discard_changes
+    Scenario: Editor.CMPL_IMPL_NREQ
+    Given the test file named "non-requirement.txt" is opened
+    When the text below is appended to the end of the file
+    """
+    -- $$Implements this.and.that, T
+    """
+    And the list of completion proposals is requested for current position
+    Then the list of proposals shall include the following entries:
+    """
+    Test.
+    Test.Parser.
+    Test.Parser.IMPLMNT_GRP.
+    Test.Analyzer.CMNT_IMPLMNT
+    Test.Parser.WARN_RTNL
+    """
+
+    @discard_changes
+    Scenario: Editor.CMPL_IMPL_REQ
+        Given the test file named "lower-level.shalldn" is opened
+    When the text below is appended to the end of the file
+    """
+    * Implements **this.and.that**, **T
+    """
+    And the list of completion proposals is requested for current position
+    Then the list of proposals shall include the following entries:
+    """
+    Test.
+    Test.Parser.
+    Test.Parser.IMPLMNT_GRP.
+    Test.Analyzer.CMNT_IMPLMNT
+    Test.Parser.WARN_RTNL
+    """
+
+    @discard_changes
+    Scenario: Editor.CMPL_ID_REQ same file
+        Given the test file named "tests.shalldn" is opened
+    When the text below is appended to the end of the file
+    """
+
+    **T
+    """
+    And the list of completion proposals is requested for current position
+    Then the list of proposals shall include the following entries:
+    """
+    Test.
+    Test.Parser.
+    Test.Parser.IMPLMNT_GRP.
+    Test.Analyzer.CMNT_IMPLMNT
+    Test.Parser.WARN_RTNL
+    """
+
+    @discard_changes
+    Scenario: Editor.CMPL_ID_REQ for other file
+        Given the test file named "lower-level.shalldn" is opened
+    When the text below is appended to the end of the file
+    """
+
+    **T
+    """
+    And the list of completion proposals is requested for current position
+    Then the list of proposals shall not include the following entries:
+    """
+    Test.
+    Test.Parser.
+    Test.Parser.IMPLMNT_GRP.
+    Test.Analyzer.CMNT_IMPLMNT
+    Test.Parser.WARN_RTNL
+    """
+
+    @discard_changes
+    Scenario: Editor.CMPL_NS_ORD
+        Given the test file named "tests.shalldn" is opened
+    When the text below is appended to the end of the file
+    """
+
+    **T
+    """
+    And the list of completion proposals is requested for current position
+    Then the list of proposals shall include the following entries in given order:
+    """
+    Test.
+    Test.Parser.
+    Test.Parser.IMPLMNT_GRP.
+    Test.Analyzer.CMNT_IMPLMNT
+    Test.Parser.WARN_RTNL
+    """
+
+    @discard_changes
+    Scenario: Editor.Editor.CMPL_DEFS
+        Given the test file named "lower-level.shalldn" is opened
+    When the text below is appended to the end of the file
+    """
+    A *T
+    """
+    And the list of completion proposals is requested for current position
+    Then the list of proposals shall include the following entries:
+    """
+    Term 1
+    Term 2
+    Term 3
+    """
+

@@ -94,6 +94,30 @@ export namespace Trees {
 		return all;
 	}
 
+	export function flattenTo(res: string[], tree: NamespaceTree, includeLeafs?:boolean) {
+		tree.forEach(n => {
+			if (typeof n == 'string') {
+				if (includeLeafs)
+					res.push(n);
+				return;
+			}
+			res.push(n.id+".");
+			if (typeof n.children == 'string') {
+				if (includeLeafs)
+					res.push(n.children);
+				return;
+			}
+			if (n.children.length)
+				flattenTo(res,n.children,includeLeafs);
+		});
+	}
+
+	export function flatten(tree: NamespaceTree, includeLeafs?: boolean): string[] {
+		let res:string[] = [];
+		flattenTo(res,tree,includeLeafs);
+		return res;
+	}
+
 	export function sortAndCountNamespaceTree(tree:NamespaceTree) {
 		tree.sort(compareNamespaceNodes);
 		tree.forEach(n => {

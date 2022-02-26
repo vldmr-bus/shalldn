@@ -2,6 +2,9 @@ Definition of the Shalldn *parser*
 * Implements **Shalldn parser**
 
 ## Requirements
+**Parser.DOC_Subject**  
+The parser **shall** use the only italicized group of words in the title of the document file as the *document subject* *(n.b.)*.
+
 **Parser.RQ_statement**  
 The parser **shall** recognize a sentence as a requirement if the sentence is preceded by a *separately bolded* *(i.e. surrounded by bold markdown immediately on both sides)* *identifier* *(i.e. a contiguous group of alphanumeric, '_' and '.' characters)* and includes the document subject followed by *separately bolded* word "shall". 
 
@@ -10,9 +13,6 @@ The parser **shall** recognize a requirement as *tagged requirement* *(n.b.)* wh
 
 **Parser.TAGGED_VALUE_RQ**
 The parser **shall** ignore all text between colon character and end of line when the text immediately follows a *tag* of a requirement.
-
-**Parser.DOC_Subject**  
-The parser **shall** use the only italicized group of words in the title of the document file as the document subject.
 
 **Parser.ERR_No_DOC_Subject**  
 The parser **shall** indicate error condition when the first line in the document file does not contain a single italicized group of words.
