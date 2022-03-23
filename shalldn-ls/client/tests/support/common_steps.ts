@@ -4,6 +4,7 @@ import { runTests } from '@vscode/test-electron';
 import { helpers } from './helper';
 import * as vscode from 'vscode';
 import Test from './test';
+import * as path from "path";
 
 BeforeAll(
 async function activate() {
@@ -17,9 +18,15 @@ async function dsicardChanges(this:Test){
 
 Given(/the test file named \"(.*)\" (?:with requirement id \"([\w\.]+)\"|is opened)/,
 async function openFile(this:Test,fileName:string,reqId:string) {
-	this.docUri = await helpers.getDocUri(fileName);
-	if (!this.docUri)
-		assert.fail(`File ${fileName} is not found in workspace`);
+	if (!fileName.startsWith('..')) {
+		this.docUri = await helpers.getDocUri(fileName);
+		if (!this.docUri)
+			assert.fail(`File ${fileName} is not found in workspace`);
+	} else {
+		let wspath = vscode!.workspace!.workspaceFolders![0]!.uri!.fsPath;
+		let abspath = path.resolve(wspath, fileName);
+		this.docUri = vscode.Uri.parse('file:/'+abspath);
+	}
 	this.thatId = reqId;
 	await helpers.openDoc(this.docUri);
 })
@@ -128,6 +135,13 @@ async function checkreference(this:Test,file:string,id:string) {
 		}
 	}
 	assert.equal(locations.length,1,`The file ${file} shall have reference with id "${id}"`);
+})
+
+Then(/the list shall be empty/,
+async function checkreference(this:Test) {
+	if (!this.locLinks)
+		assert.fail('The test step does not have a list of locations')
+	assert.equal(this.locLinks.length,0,'The list of refrences shall be empty');
 })
 
 When('the list of completion proposals is requested for current position',

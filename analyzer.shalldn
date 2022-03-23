@@ -29,6 +29,9 @@ Within a root directory of a project the analyzer **shall** analyze all the file
 **Analyzer.GITIGNORE**  
 The analyzer **shall** exclude from analyzing any file matching the selection rules in ".gitignore" files within the project directories as specified in [git documentation](https://git-scm.com/docs/gitignore).
 
+**Analyzer.IGNORE_NONPROJ**  
+When requested to analyze any file outside of the root directory of a project the analyzer **shall** ignore ignore the request.
+
 **Analyzer.RQS**  
 For each *identifier* of a requirement defined in project the analyzer **shall** produce a list of text references to every requirement definition for the *identifier*.
 

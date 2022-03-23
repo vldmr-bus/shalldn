@@ -21,6 +21,7 @@ import ShalldnTermDef from './model/ShalldnTermDef';
 import MultIgnore from '../../shared/lib/multignore';
 import { URI } from 'vscode-uri';
 import { Trees } from '../../shared/lib/trees';
+import { FsUtil } from '../../shared/lib/fsutil';
 
 class ShalldnProjectRqAnalyzer implements shalldnListener {
 	constructor(
@@ -562,7 +563,7 @@ export default class ShalldnProj {
 		for (let l=0;l<lines.length; l++) {
 			let line = lines[l];
 			// $$Implements Analyzer.CMNT_IMPLMNT
-			let m = line.trim().match(/.*\$\$Implements ([\w\.]+(?:\s*,\s*[\w\.]+\s*)*)/)
+			let m = line.trim().match(/.*\$\$Implements\s+([\w\.]+(?:\s*,\s*[\w\.]+\s*)*)/)
 			if (!m)
 				continue;
 			m[1].split(',').forEach(s=>{
@@ -593,7 +594,14 @@ private static debounceTime = 400;
 
 // $$Implements Analyzer.PROJECT
 public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): AnalyzerPromise<string[]> {
-	files.forEach(f => this.pendingFiles.add(f));
+	// $$Implements Analyzer.IGNORE_NONPROJ
+	var projectfiles = files.filter(f=>this.wsFolders.some(p=>FsUtil.isInside(p,f)));
+	if (projectfiles.length == 0) {
+		let ap = new AnalyzerPromise<string[]>();
+		ap.resolve!(files);
+		return ap;
+	}
+	projectfiles.forEach(f => this.pendingFiles.add(f));
 	if (this.analyzing)
 		return this.pendingAnalysis;
 	if (this.debounce) {

@@ -17,3 +17,12 @@ Feature: Analyzer
     **Test.Analyzer.CMNT_IMPLMNT**
     """
     Then the list shall contain reference from the file "non-requirement.txt" with id "Test.Analyzer.CMNT_IMPLMNT"
+
+    @discard_changes
+    Scenario: Analyzer.IGNORE_NONPROJ
+    Given the test file named "../../analyzer.shalldn" is opened
+    When list of references is obtained for the word "Analyzer" in following text:
+    """
+    **Analyzer.IGNORE_NONPROJ**
+    """
+    Then the list shall be empty
