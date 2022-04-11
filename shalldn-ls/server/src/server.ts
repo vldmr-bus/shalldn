@@ -466,6 +466,21 @@ connection.onRequest(toggleErrWarn, () => {
 	project.toggleErrWarn();
 });
 
+var exportHtml: RequestType<{
+	folderUri:string,
+	workspaceUri:string
+}, any, any> = new RequestType("exportHtml");
+connection.onRequest(exportHtml, data => {
+	try {
+		project.exportHtml(data.folderUri, data.workspaceUri, (message,increment)=>{
+			connection.sendNotification("exportHtml/progress", {message,increment});
+		});
+		connection.sendNotification("exportHtml/progress", { message: "Finished export", increment: 100 });
+	} catch (ex) {
+		connection.sendNotification("exportHtml/progress", { message: ex, increment:-1 });
+	}
+});
+
 // Make the text document manager listen on the connection
 // for open, change and close text document events
 documents.listen(connection);

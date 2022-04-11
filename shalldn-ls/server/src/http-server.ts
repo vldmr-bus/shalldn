@@ -79,7 +79,7 @@ app.get('*', (req,resp,next)=>{
 		return;
 	}
 	let apath = path.resolve(root, req.path.replace(/^\/+/, ''))
-	let md = project.expandMD(apath,root);
+	let md = project.expandMD(apath);
 	let html = marked.parse(md);
 	resp.send(html);
 });

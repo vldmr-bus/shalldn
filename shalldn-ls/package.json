@@ -4,7 +4,7 @@
 	"description": "Shalldn requirements language support",
 	"author": "Vladimir Avdonin",
 	"license": "MIT",
-	"version": "0.0.22",
+	"version": "0.0.23",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/vldmr-bus/shalldn"
@@ -50,6 +50,11 @@
 			{
 				"command": "shalldn.toggleErrWarn",
 				"title": "Toggle showing errors as warnings",
+				"category": "Shalldn"
+			},
+			{
+				"command": "shalldn.exportHtml",
+				"title": "Export project as HTML files collection",
 				"category": "Shalldn"
 			},
 			{

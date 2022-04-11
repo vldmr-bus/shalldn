@@ -2,7 +2,8 @@ import ShalldnRqRef from './model/ShalldnRqRef';
 
 import * as path from 'path';
 import * as fs from 'fs';
-import * as rx  from 'rxjs';
+import * as rx from 'rxjs';
+import { marked } from "marked";
 import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts';
 import { shalldnLexer } from './antlr/shalldnLexer';
 import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, shalldnParser, TitleContext } from './antlr/shalldnParser';
@@ -721,7 +722,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		}
 	}
 
-	public expandMD(apath:string, rootpath:string):string{
+	public expandMD(apath:string):string{
 		let uri = URI.file(apath).toString();
 		let text = fs.readFileSync(apath, 'utf8');
 		let res = text.replace(/\r/g,'');
@@ -746,8 +747,11 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 			let i = def.idRange.start.line;
 			const defid = def.id.replace(/[- ]/g, '_');
 			lines[i] = lines[i].replace(/(\s*)$/,`<a name="${defid}"></a>$&`);
-			const refs = this.RqRefs.get(def.id);
+			let refs = this.RqRefs.get(def.id);
 			if (!refs)
+				return;
+			refs = refs.filter(r => path.extname(r.uri).toLowerCase() == ".shalldn");
+			if (!refs.length)
 				return;
 			lines[i] = lines[i].replace(def.id, `$&<a href="#${defid}_REFS">[REFS]</a>`)
 			let links:string[] = [];
@@ -846,5 +850,35 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 				terms.push(pfx+t.substring(pfx.length))
 			}
 			return terms;
+	}
+
+	public exportHtml(rootUri: string, workspaceUri:string, progress:(msg:string,pct:number)=>void) {
+		let rootp = URI.parse(rootUri).fsPath;
+		let wsp = URI.parse(workspaceUri).fsPath;
+		let files:string[]=[];
+		for (const uri of this.Files.keys()) {
+			if (path.extname(uri).toLowerCase() != '.shalldn')
+				continue;
+			let fp = URI.parse(uri).fsPath;
+			if (!FsUtil.isInside(wsp,fp))
+				continue;
+			files.push(fp);
+		}
+		if (files.length == 0)
+			throw "No exportable files in workspace";
+		for (let i=0;i<files.length;i++) {
+			let fp = files[i];
+			let rp = path.dirname(path.relative(wsp, fp));
+			let dstDir = path.resolve(rootp,rp);
+			fs.mkdirSync(dstDir,{recursive:true});
+			if (!fs.existsSync(dstDir))
+				throw `Can not create directory ${dstDir}`;
+			let md = this.expandMD(fp);
+			let html = marked.parse(md);
+			html = html.replace(/(<a href="[^#]+).shalldn#/g,"$1.html#");
+			let df = path.basename(fp,path.extname(fp))+".html";
+			fs.writeFileSync(path.resolve(dstDir,df),html);
+			progress(`Exported ${rp}`,i/files.length*100);
+		}
 	}
 }

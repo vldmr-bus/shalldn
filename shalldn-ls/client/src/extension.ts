@@ -120,6 +120,52 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
+	context.subscriptions.push(
+		vscode.commands.registerCommand('shalldn.exportHtml', async () => {
+			let wsf = (vscode.workspace.workspaceFolders.length>1) ? await vscode.window.showWorkspaceFolderPick(/*{ placeHolder:'Please select workplace'}*/) : vscode.workspace.workspaceFolders[0];
+			if (!wsf)
+				return;
+			const folderUris = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, canSelectMany: false, openLabel: 'Select destination folder' });
+			if (!folderUris) {
+				return;
+			}
+
+			let progress: vscode.Progress<{ message?: string; increment?: number }>;
+			vscode.window.withProgress({
+				location: vscode.ProgressLocation.Notification,
+				title: "Exporting to Html",
+				cancellable: true
+			}, (p, token) => {
+				token.onCancellationRequested(() => {
+					console.log("User canceled the long running operation");
+				});
+
+				p.report({ increment: 0, message: "Exporting Shalldn project" });
+				progress = p;
+				const promise = new Promise<void>(resolve => {
+					let ntfDsp = client.onNotification("exportHtml/progress", (data:{message?: string, increment?: number}) => {
+						let increment = data.increment;
+						let message = data.message;
+						if (increment == -1) {
+							ntfDsp.dispose();
+							resolve();
+							vscode.window.showErrorMessage("Shalldn: Export failed --\r\n "+message);
+						} 
+						if (increment<100)
+							p.report({ increment, message});
+						else {
+							ntfDsp.dispose();
+							resolve();
+							vscode.window.showInformationMessage("Shalldn: Export completed");
+						}
+					});
+					client.sendRequest("exportHtml", {folderUri:folderUris[0].toString(), workspaceUri:wsf.uri.toString()});
+				});
+				return promise;
+			});
+		})
+	);
+
 	// Start the client. This will also launch the server
 	client.start();
 
