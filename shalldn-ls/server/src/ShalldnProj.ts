@@ -866,6 +866,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		}
 		if (files.length == 0)
 			throw "No exportable files in workspace";
+		let rpaths:string[] = [];
 		for (let i=0;i<files.length;i++) {
 			let fp = files[i];
 			let rp = path.dirname(path.relative(wsp, fp));
@@ -878,7 +879,33 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 			html = html.replace(/(<a href="[^#]+).shalldn#/g,"$1.html#");
 			let df = path.basename(fp,path.extname(fp))+".html";
 			fs.writeFileSync(path.resolve(dstDir,df),html);
+			rpaths.push(`${rp}/${df}`);
 			progress(`Exported ${rp}`,i/files.length*100);
 		}
+		
+		let dot = String.fromCharCode(1);
+		let dotregx = new RegExp(dot, 'g');
+		let sep = String.fromCharCode(2);
+		rpaths = rpaths.map(p=> {
+			let escaped = p.replace(/\./g,dot);
+			return escaped.replace(/[\/\\]/g,'.')+sep+escaped
+		});
+		let tree = Trees.makeNamespaceTree(rpaths);
+		Trees.sortAndCountNamespaceTree(tree);
+		let idx = '<html><head/><body><ul>';
+		function printn(n:Trees.NamespaceNode) {
+			if (typeof n == 'string') {
+				let p = n.replace(/\./g,'/').replace(dotregx, '.').split(sep);
+				idx += `<li><a href="${p[1]}">${path.basename(p[0], path.extname(p[0]))
+}</a></li>`;
+				return;
+			}
+			idx += `<li>${path.basename(n.id.replace(/\./g, '/').replace(dotregx, '.'))}<ul>`;
+			n.children.forEach(i =>printn(i));
+			idx += '</ul></li>'
+		}
+		tree.forEach(n=>printn(n));
+		idx += '</body></html>'
+		fs.writeFileSync(path.resolve(rootp, 'index.html'), idx);
 	}
 }

@@ -6,7 +6,7 @@ export namespace Trees {
 	}
 
 	export type Tree<T> = (T|TreeNode<T>)[];
-	function isTreeItem<T>(t:T|TreeNode<T>): t is TreeNode<T> {
+	export function isTreeItem<T>(t:T|TreeNode<T>): t is TreeNode<T> {
 		return (t as TreeNode<T>).children != undefined;
 	}
 
