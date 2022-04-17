@@ -16,7 +16,11 @@ import {
 	TextDocumentPositionParams,
 	CompletionItem,
 	CompletionItemKind,
-	TextEdit} from 'vscode-languageserver/node';
+	TextEdit,
+	WorkspaceEdit,
+	RenameParams,
+	Range,
+	PrepareRenameParams} from 'vscode-languageserver/node';
 
 import {
 	Position,
@@ -72,7 +76,8 @@ connection.onInitialize((params: InitializeParams) => {
 			referencesProvider: true,
 			completionProvider: {
 				triggerCharacters: ['.','*'],
-			}
+			},
+			renameProvider: {prepareProvider:true}
 		}
 	};
 	if (cpblts.WorkspaceFolder) {
@@ -247,6 +252,10 @@ function isRqDoc(doc:TextDocument):boolean {
 	return doc.languageId == 'shalldn' || doc.languageId == 'markdown' && /\.shalldn$/.test(doc.uri);
 }
 
+function idAt(tr:{text:string,range:Range},p:Position) {
+	return Util.lineFragment(tr,p.character,/.*?([\w\.]*)$/,/^([\w\.]*).*?$/s);
+}
+
 // $$Implements Editor.NAV_RQ_DEF
 connection.onDefinition((params, cancellationToken) => {
 	return new Promise((resolve, reject) => {
@@ -260,9 +269,9 @@ connection.onDefinition((params, cancellationToken) => {
 		}
 		let tr = {text, range}
 
-		let id = Util.lineFragment(tr,p.character,/.*?([\w\.]*)$/,/^([\w\.]*).*?$/s);
+		let id = idAt(tr,p);
 		if (id) {
-			let defs = project.findDefinition(id.text,id.range);
+			let defs = project.findDefinitionLocations(id.text,id.range);
 			if (defs.length > 0 || !isRqDoc(document)) {
 				resolve(defs);
 				return;
@@ -272,7 +281,7 @@ connection.onDefinition((params, cancellationToken) => {
 		// informal requirement definition
 		id = Util.lineFragment(tr, p.character,/^.*Implements\s+\*\*([^*]+)$/,/^([^*]*)\*\*/);
 		if (id) {
-			let defs = project.findDefinition(id.text,id.range);
+			let defs = project.findDefinitionLocations(id.text,id.range);
 			if (defs.length > 0 || !isRqDoc(document)) {
 				resolve(defs);
 				return;
@@ -304,7 +313,7 @@ connection.onReferences((params)=>{
 
 		let id = Util.lineFragment(tr, p.character,/.*?([\w\.]*)$/, /^([\w\.]*).*?$/s);
 		if (id) {
-			let refs = project.findReferences(id.text);
+			let refs = project.findReferenceLocations(id.text);
 			if (refs.length > 0 || !isRqDoc(document)) {
 				resolve(refs);
 				return;
@@ -314,7 +323,7 @@ connection.onReferences((params)=>{
 		// informal requirement references
 		id = Util.lineFragment(tr, p.character,/^#+.*\*([^*]+)$/,/^([^*]*)\*.*$/);
 		if (id)
-			resolve(project.findReferences(id.text));
+			resolve(project.findReferenceLocations(id.text));
 		resolve(null);
 	});
 
@@ -429,6 +438,57 @@ connection.onCompletion(
 	}
 );
 
+// $$Implements Editor.RENAME
+connection.onPrepareRename(async (params: PrepareRenameParams) => {
+	const document = documents.get(params.textDocument.uri);
+	const p = params.position;
+	let range = Util.lineRangeOfPos(p);
+	let text = document?.getText(range).trimEnd();
+
+	if (!document || !text)
+		return null;
+	
+	let id = idAt({text, range}, p);
+	if (id) {
+		let defs = project.findDefinitionLocations(id.text,id.range);
+		if (defs.length == 1)
+			return id.range;
+	}
+	return null;
+})
+
+// $$Implements Editor.RENAME
+connection.onRenameRequest((params: RenameParams)=>{
+	if (!params.newName.match(/^[a-zA-Z][\w.]+$/)) // $$Implements Editor.RENAME_VALIDATE
+		return null;
+	const document = documents.get(params.textDocument.uri);
+	const p = params.position;
+	let range = Util.lineRangeOfPos(p);
+	let text = document?.getText(range).trimEnd();
+
+	if (!document || !text)
+		return null;
+
+	let id = idAt({ text, range }, p);
+	if (!id)
+		return null;
+	let defs = project.findDefinitions(id.text);
+	if (defs.length != 1)
+		return null;
+	let def=defs[0];
+
+	let changes:{[uri: string]: TextEdit[]} = {};
+	changes[def.uri] = [{range:def.idRange,newText:params.newName}];
+	let refs = project.findReferences(id.text);
+	refs.forEach(r=>{
+		if (!changes.hasOwnProperty(r.uri))
+			changes[r.uri]=[]
+		changes[r.uri].push({range:r.idRange,newText:params.newName})
+	});
+
+	return {changes};
+})
+
 // $$Implements Analyzer.PROJECT
 var analyzeFilesRequest: RequestType<{
 	files: string[],
@@ -448,7 +508,7 @@ connection.onRequest(ignoreFiles, (ignores:[string,string[]][]) => project.setIg
 
 var getDefinitionRequest: RequestType<string, any, any> = new RequestType("getDefinition");
 connection.onRequest(getDefinitionRequest, (id) => {
-	let defs = project.findDefinition(id);
+	let defs = project.findDefinitionLocations(id);
 	return defs.length?defs[0]:undefined;
 });
 

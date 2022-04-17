@@ -50,6 +50,8 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		let id = ctx.bolded_id()?.IDENTIFIER()?.text || ctx.bolded_id()?.WORD()?.text||'';
 		let range = Util.rangeOfContext(ctx);
 		let idRange = Util.rangeOfContext(ctx.bolded_id());
+		idRange.start.character+=2;
+		idRange.end.character-=2;
 		let def:ShalldnRqDef = {
 			id,
 			uri: this.uri,
@@ -120,16 +122,26 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			));
 			return;
 		}
-		let ids:string[]=[];
-		if (ctx.bolded_phrase())
-			ids.push(this.getText(ctx.bolded_phrase()?.plain_phrase()));
+		let ids:{id:string,range:Range}[]=[];
+		if (ctx.bolded_phrase()) 
+			ids.push({
+				id:this.getText(ctx.bolded_phrase()!.plain_phrase()),
+				range: Util.rangeOfContext(ctx.bolded_phrase()!)
+			});
 		else
-			ctx.bolded_id().forEach(id => ids.push(id.IDENTIFIER()?.text || id.WORD()?.text||''));
+			ctx.bolded_id().forEach(x => ids.push({
+				id:x.IDENTIFIER()?.text || x.WORD()?.text||'',
+				range: Util.rangeOfContext(x)
+			}));
+		ids.forEach(x=>{
+			x.range.start.character += 2;
+			x.range.end.character -= 2;
+		})
 		if (parentRq == null && (parentTitle || parentHeading) ) {
 			let level = (parentHeading)?parentHeading.hashes().childCount:1;
 			while (this.groupImplmentation.length && this.groupImplmentation[0].level>=level)
 				this.groupImplmentation.shift();
-			this.groupImplmentation.unshift({level,ids});
+			this.groupImplmentation.unshift({level,ids:ids.map(id=>id.id)});
 		}
 		this.proj.addRefs(this.uri,parentRq||parentHeading||parentTitle||ctx, ctx, ids);
 	}
@@ -357,7 +369,7 @@ export default class ShalldnProj {
 		return def;
 	}
 
-	public addRefs(uri: string, tgt: ParserRuleContext, clause: ParserRuleContext, ids: string[]) {
+	public addRefs(uri: string, tgt: ParserRuleContext, clause: ParserRuleContext, ids: {id:string,range:Range}[]) {
 		let fileData = this.Files.get(uri);
 		let tgtRange = Util.rangeOfContext(tgt);
 		let clauseRange = Util.rangeOfContext(clause);
@@ -366,7 +378,7 @@ export default class ShalldnProj {
 				Diagnostics.error(`Definition without subject`, clauseRange);
 				return;
 			}
-			let ref: ShalldnRqRef = {uri, id, tgtRange,clauseRange,kind:RefKind.Implementation};
+			let ref: ShalldnRqRef = {uri, id:id.id, idRange:  id.range, tgtRange,clauseRange,kind:RefKind.Implementation};
 			fileData?.RqRefs.push(ref);
 			let refs = this.RqRefs.get(ref.id);
 			if (!refs) {
@@ -600,9 +612,9 @@ export default class ShalldnProj {
 				m[1].split(',').forEach(s=>{
 					let id = s.trim();
 					let sp = line.search(id);
-					let tgtRange:Range={start:{line:l,character:sp},end:{line:l,character:sp+id.length}};
+					let idRange:Range={start:{line:l,character:sp},end:{line:l,character:sp+id.length}};
 					let kind = line.substring(csp).startsWith('$$Implements')?RefKind.Implementation:RefKind.Test;
-					let ref: ShalldnRqRef = {uri, id, tgtRange, clauseRange, kind };
+					let ref: ShalldnRqRef = {uri, id, idRange, clauseRange, kind };
 					this.addRefNonRqFile(fileData!,ref);
 				});
 			}
@@ -613,9 +625,9 @@ export default class ShalldnProj {
 			if (m) {
 				let id = m[1];
 				let sp = line.search(id);
-				let tgtRange:Range={start:{line:l,character:sp},end:{line:l,character:sp+id.length}};
+				let idRange:Range={start:{line:l,character:sp},end:{line:l,character:sp+id.length}};
 				let clauseRange={start:{line:l,character:line.search(/\S/)},end:{line:l,character:line.length}};
-				let ref: ShalldnRqRef = { uri, id, tgtRange, clauseRange, kind:RefKind.Test };
+				let ref: ShalldnRqRef = { uri, id, idRange, clauseRange, kind:RefKind.Test };
 				this.addRefNonRqFile(fileData!, ref);
 			}
 			
@@ -701,10 +713,12 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 	return this.pendingAnalysis;
 }
 
-
+	public findDefinitions(id:string) {
+		return this.RqDefs.get(id) || [];
+	}
 
 	// $$Implements Analyzer.RQS
-	public findDefinition(id:string, range?:Range): LocationLink[] {
+	public findDefinitionLocations(id:string, range?:Range): LocationLink[] {
 		let defs = this.RqDefs.get(id)||[];
 		return defs.map(def => <LocationLink>{
 			targetUri: def.uri,
@@ -714,12 +728,16 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		});
 	}
 
+	public findReferences(id:string) {
+		return this.RqRefs.get(id) || [];
+	}
+
 	// $$Implements Analyzer.IMPLNT, Analyzer.TESTS
-	public findReferences(id: string): Location[] {
+	public findReferenceLocations(id: string): Location[] {
 		let defs = this.RqRefs.get(id) || [];
 		return defs.map(def => <Location>{
 			uri: def.uri,
-			range: def.tgtRange
+			range: def.tgtRange||def.idRange
 		});
 	}
 
@@ -842,7 +860,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 				let rpath = path.relative(path.dirname(apath), dapath).replace(/\\/g, '/');
 				let i = ref.clauseRange.start.line;
 				lines[i] = lines[i].replace(def.id, `[$&](${rpath}#${defid})`);
-				lines[ref.tgtRange.start.line] = lines[ref.tgtRange.start.line].replace(/(\s*)$/,`<a name="${defid}_${idx}"></a>$&`);
+				lines[(ref.tgtRange||ref.idRange).start.line] = lines[(ref.tgtRange||ref.idRange).start.line].replace(/(\s*)$/,`<a name="${defid}_${idx}"></a>$&`);
 			})
 		});
 		if (references.length) {

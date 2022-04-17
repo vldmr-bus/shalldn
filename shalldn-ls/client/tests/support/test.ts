@@ -7,4 +7,5 @@ export default interface Test {
 	locLinks: (vscode.Location | vscode.LocationLink)[]|undefined;
 	complList: vscode.CompletionList|undefined;
 	thatCommand: string|undefined;
+	wsEdit: vscode.WorkspaceEdit|undefined;
 }

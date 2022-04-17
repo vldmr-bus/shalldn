@@ -184,7 +184,7 @@ Feature: Editor
 
     @discard_changes
     Scenario: Editor.CMPL_ID_REQ same file
-        Given the test file named "tests.shalldn" is opened
+    Given the test file named "tests.shalldn" is opened
     When the text below is appended to the end of the file
     """
 
@@ -202,7 +202,7 @@ Feature: Editor
 
     @discard_changes
     Scenario: Editor.CMPL_ID_REQ for other file
-        Given the test file named "lower-level.shalldn" is opened
+    Given the test file named "lower-level.shalldn" is opened
     When the text below is appended to the end of the file
     """
 
@@ -251,3 +251,22 @@ Feature: Editor
     Term 3
     """
 
+    Scenario: Editor.RENAME
+    Given the test file named "tests.shalldn" is opened
+    When renaming with the word "ValidId" is requested for the word "Parser" in following text:
+    """
+    **Test.Parser.IMPLMNT_INDVDL**
+    """
+    Then total number of edits shall be 4
+    And the list of edits shall include 1 in file "lower-level.shalldn"
+    And the list of edits shall include 1 in file "non-requirement.txt"
+    And the list of edits shall include 1 in file "tests.feature"
+    And the list of edits shall include 1 in file "tests.shalldn"
+
+    Scenario: Editor.RENAME_VALIDATE
+    Given the test file named "tests.shalldn" is opened
+    When renaming with the word "InvalidId*&^*" is requested for the word "Parser" in following text:
+    """
+    **Test.Parser.IMPLMNT_INDVDL**
+    """
+    Then total number of edits shall be 0

@@ -8,7 +8,7 @@ Feature: Analyzer
     """
     **Test.Analyzer.CMNT_IMPLMNT**
     """
-    Then the list shall contain reference from the file "lower-level.shalldn" with id "The.lower.level" that follows the text "* Implements"
+    Then the list shall contain reference from the file "lower-level.shalldn" with id "The.lower.level"
 
     Scenario: Analyzer.IMPLNT for non-requirements document
     Given the test file named "tests.shalldn" is opened

@@ -203,3 +203,38 @@ async function (this: Test) {
 	this.thatCommand = 'shalldn.toggleTestWarn';
 	await vscode.commands.executeCommand(this.thatCommand);
 })
+
+When(/renaming with the word "(.+)" is requested for the word "(\w+)" in following text:/,
+async function getReferences(this:Test,repl:string, word:string,text:string){
+	let range = helpers.getTextPosition(text,word);
+	try {
+		this.wsEdit = (await vscode.commands.executeCommand(
+			'vscode.executeDocumentRenameProvider',
+			this.docUri,
+			helpers.midRange(range),
+			repl
+		)) as vscode.WorkspaceEdit;
+	}
+	catch (e:any) {
+		if (e.message != 'No result.')
+			throw e;
+	}
+})
+
+Then(/the list of edits shall include (\d+) in file "(.*)"/,
+function(this:Test, ns:string, file:string) {
+	if (!this.wsEdit)
+		throw 'The test step does not have a list of edits';
+	let n:number = parseInt(ns);
+	let fileEdits = this.wsEdit.entries().filter(e=>e[0].toString().endsWith(file));
+	assert.equal(fileEdits.length,n,`Unexpected number of edits in file ${file}`);
+})
+
+Then(/total number of edits shall be (\d+)/,
+function(this:Test, ns:string) {
+	let n:number = parseInt(ns);
+	if (!this.wsEdit)
+		assert.equal(0,n,"No edits received");
+	else
+		assert.equal(this.wsEdit.entries().length,n,`Unexpected number of edits`);
+})

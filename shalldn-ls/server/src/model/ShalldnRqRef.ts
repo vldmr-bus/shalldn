@@ -7,7 +7,8 @@ export enum RefKind {
 
 export default interface ShalldnRqRef {
 	id:string;
-	tgtRange: Range;
+	idRange: Range;
+	tgtRange?: Range;
 	clauseRange: Range;
 	uri: string;
 	kind: RefKind;
