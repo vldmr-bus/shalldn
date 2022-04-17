@@ -61,6 +61,13 @@ export namespace helpers {
         return doc.getText(('uri' in l) ? l.range : l.targetRange);
     }
 
+    export async function getDocLine(l:vscode.Location|vscode.LocationLink) {
+        let doc = await vscode.workspace.openTextDocument(('uri' in l) ? l.uri : l.targetUri);
+        let range = ('uri' in l) ? l.range : l.targetRange;
+        let lineRange = new vscode.Range(range.start.line, 0, range.start.line+1,0)
+        return doc.getText(lineRange);
+    }
+
     export function getExtName(l: vscode.Location | vscode.LocationLink) {
         let uri = ('uri' in l) ? l.uri : l.targetUri;
 
@@ -76,7 +83,9 @@ export namespace helpers {
         await editor.edit(eb => 
             eb.insert(pos, text)
         );
-        return sleep(100); // release control for extension to do its job
+        let newpos = doc.positionAt(Math.max(0, doc.getText().length));
+        vscode.window.activeTextEditor!.selection = new vscode.Selection(newpos,newpos);
+        return sleep(200); // release control for extension to do its job
     }
 
     export async function setTestContent(content: string): Promise<boolean> {
@@ -153,6 +162,9 @@ export namespace helpers {
             if (uri.scheme == "file")
                 await vscode.workspace.fs.delete(uri);
         }
+    }
+    export function escapeRegExp(s: string) {
+        return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
 }

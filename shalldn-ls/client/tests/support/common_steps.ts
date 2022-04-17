@@ -5,9 +5,11 @@ import { helpers } from './helper';
 import * as vscode from 'vscode';
 import Test from './test';
 import * as path from "path";
+import {setDefaultTimeout} from '@cucumber/cucumber';
 
 BeforeAll(
 async function activate() {
+	
 	await helpers.activate();
 })
 
@@ -15,6 +17,14 @@ After('@discard_changes',
 async function dsicardChanges(this:Test){
 	await helpers.discardChanges(this);
 })
+
+After('@repeat_that_command_after_test',
+	async function (this: Test) {
+		if (!this.thatCommand)
+			throw 'thatCommand not defined in test with tag repeat_that_command_after_test';
+		await vscode.commands.executeCommand(this.thatCommand);
+	}
+)
 
 Given(/the test file named \"(.*)\" (?:with requirement id \"([\w\.]+)\"|is opened)/,
 async function openFile(this:Test,fileName:string,reqId:string) {
@@ -40,6 +50,7 @@ async function createFile(this:Test,filename:string) {
 
 When("the text below is appended to the end of the file",
 async function enterText(this:Test, text:string){
+	text = text.replace(/\\/g,'')
 	text = helpers.expandTextVariables(text,this);
 	await helpers.enterText(text);
 	await helpers.sleep(800);
@@ -115,8 +126,8 @@ async function getReferences(this:Test,word:string,text:string){
 	)) as Array<vscode.Location|vscode.LocationLink>;
 })
 
-Then(/the list shall contain reference from the file "(.*)" with id "(.*)"/,
-async function checkreference(this:Test,file:string,id:string) {
+Then(/the list shall contain reference from the file "(.*)" with id "(([^"]+))"(?: that follows the text "([^"]+)")?/,
+async function checkreference(this:Test,file:string,id:string,text?:string): Promise<void> {
 	if (!this.locLinks)
 		assert.fail('The test step does not have a list of locations')
 	let fileLocations = this.locLinks.filter(l=>
@@ -124,14 +135,22 @@ async function checkreference(this:Test,file:string,id:string) {
 	);
 	let locations: (vscode.LocationLink|vscode.Location)[]=[];
 	for (let loc of fileLocations) {
-		let text = await helpers.getDocText(loc);
+		let doctext = await helpers.getDocText(loc);
 		if (helpers.getExtName(loc).toLowerCase() == '.shalldn') {
-			let actual = text.trim().replace(/^(?:.*\n)?\*\*([\w.]+)\*\*.*$/ms, '$1');
+			let actual = doctext.trim().replace(/^(?:.*\n)?\*\*([\w.]+)\*\*.*$/ms, '$1');
 			if (id == actual)
 				locations.push(loc);
 		} else {
-			if (text == id)
-				locations.push(loc);
+			if (doctext == id) {
+				let found = true;
+				if (text) {
+					let line = await helpers.getDocLine(loc);
+					let pfx = line.split(id)[0];
+					found = pfx.search(helpers.escapeRegExp(text)) >= 0;
+				}
+				if (found)
+					locations.push(loc);
+			}
 		}
 	}
 	assert.equal(locations.length,1,`The file ${file} shall have reference with id "${id}"`);
@@ -179,3 +198,8 @@ Then(/the list of proposals shall (not |)include the following entries( in given
 		})
 	})
 
+Given("command 'Toggle warnings for requirements without tests in this file' was issued",
+async function (this: Test) {
+	this.thatCommand = 'shalldn.toggleTestWarn';
+	await vscode.commands.executeCommand(this.thatCommand);
+})

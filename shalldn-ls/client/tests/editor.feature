@@ -42,7 +42,7 @@ Feature: Editor
     """
     Then editor problems shall include error with the text:
     """
-    Implementation of non-exisiting requirement {that_id}
+    Implementation of non-existing requirement {that_id}
     """
 
     @discard_changes
@@ -78,6 +78,22 @@ Feature: Editor
     Then editor problems shall include info with the text:
     """
     No requirement in the document has implementation
+    """
+
+    @repeat_that_command_after_test
+    Scenario: Editor.TESTS with triggered warnings
+    Given the test file named "tests.shalldn" with requirement id "Test.Parser.IMPLMNT_GRP.Link"
+    And command 'Toggle warnings for requirements without tests in this file' was issued
+    Then editor problems shall include warning with the text:
+    """
+    Requirement Test.Parser.IMPLMNT_GRP.Link does not have tests
+    """
+
+    Scenario: Editor.TESTS without triggered warnings
+    Given the test file named "tests.shalldn" with requirement id "Test.Parser.IMPLMNT_GRP.Link"
+    Then editor problems shall not include a problem with the text:
+    """
+    Requirement Test.Parser.IMPLMNT_GRP.Link does not have tests
     """
 
     @discard_changes
@@ -137,7 +153,7 @@ Feature: Editor
     Given the test file named "non-requirement.txt" is opened
     When the text below is appended to the end of the file
     """
-    -- $$Implements this.and.that, T
+    -- $\$Implements this.and.that, T
     """
     And the list of completion proposals is requested for current position
     Then the list of proposals shall include the following entries:
@@ -151,7 +167,7 @@ Feature: Editor
 
     @discard_changes
     Scenario: Editor.CMPL_IMPL_REQ
-        Given the test file named "lower-level.shalldn" is opened
+    Given the test file named "lower-level.shalldn" is opened
     When the text below is appended to the end of the file
     """
     * Implements **this.and.that**, **T
@@ -221,7 +237,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.Editor.CMPL_DEFS
+    Scenario: Editor.CMPL_DEFS
         Given the test file named "lower-level.shalldn" is opened
     When the text below is appended to the end of the file
     """

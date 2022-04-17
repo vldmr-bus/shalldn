@@ -289,7 +289,7 @@ connection.onDefinition((params, cancellationToken) => {
 	});
 });
 
-// $$Implements Editor.NAV_IMPL
+// $$Implements Editor.NAV_IMPL, Editor.NAV_TESTS
 connection.onReferences((params)=>{
 	return new Promise((resolve, reject) => {
 		const document = documents.get(params.textDocument.uri);
@@ -429,8 +429,6 @@ connection.onCompletion(
 	}
 );
 
-
-
 // $$Implements Analyzer.PROJECT
 var analyzeFilesRequest: RequestType<{
 	files: string[],
@@ -438,7 +436,7 @@ var analyzeFilesRequest: RequestType<{
 connection.onRequest(analyzeFilesRequest, (data) => {
 	analyzeFiles(data.files).then(
 		(files)=>{
-			analyzeFiles(data.files.filter(p => /.*\.shalldn$/.test(p)))
+			analyzeFiles(data.files.filter(p => /.*\.shalldn$/.test(p) || project.fileHasReferences(p)))
 			.then(tellClient, reportAnalyzingFailure);
 		},
 		reportAnalyzingFailure
@@ -448,12 +446,6 @@ connection.onRequest(analyzeFilesRequest, (data) => {
 var ignoreFiles: RequestType<[string,string[]][], any, any> = new RequestType("ignoreFiles");
 connection.onRequest(ignoreFiles, (ignores:[string,string[]][]) => project.setIgnores(ignores));
 
-// $$Implements Editor.ERR_DEMOTE
-var toggleErrWarn: RequestType<boolean, any, any> = new RequestType("toggleErrWarn");
-connection.onRequest(toggleErrWarn, () => {
-	project.toggleErrWarn();
-});
-
 var getDefinitionRequest: RequestType<string, any, any> = new RequestType("getDefinition");
 connection.onRequest(getDefinitionRequest, (id) => {
 	let defs = project.findDefinition(id);
@@ -462,8 +454,14 @@ connection.onRequest(getDefinitionRequest, (id) => {
 
 // $$Implements Editor.ERR_DEMOTE
 var toggleErrWarn: RequestType<boolean, any, any> = new RequestType("toggleErrWarn");
-connection.onRequest(toggleErrWarn, () => {
-	project.toggleErrWarn();
+connection.onRequest(toggleErrWarn, async () => {
+	await project.toggleErrWarn();
+});
+
+// $$Implements Editor.TESTS
+var toggleTestWarn: RequestType<string, any, any> = new RequestType("toggleTestWarn");
+connection.onRequest(toggleTestWarn, async (uri: string) => {
+	await project.toggleTestWarn(uri);
 });
 
 var exportHtml: RequestType<{

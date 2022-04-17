@@ -47,10 +47,10 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	});
 
-	vscode.commands.registerCommand('shalldn.def.reveal', (id: string) => 
+	vscode.commands.registerCommand('shalldn.def.reveal', async (id: string) => 
 	{
 		id = id.replace(/^[^.]+\./, '');
-		client.sendRequest("getDefinition", id)
+		await client.sendRequest("getDefinition", id)
 			.then((loc: { targetUri: string, targetSelectionRange:vscode.Range})=>{
 				if (!loc)
 					return;
@@ -113,10 +113,17 @@ export function activate(context: vscode.ExtensionContext) {
 		clientOptions
 	);
 
+	// $$Implements Editor.TESTS
+	context.subscriptions.push(
+		vscode.commands.registerCommand('shalldn.toggleTestWarn', async () => {
+			await client.sendRequest("toggleTestWarn", vscode.window.activeTextEditor.document.uri.toString());
+		})
+	);
+
 	// $$Implements Editor.ERR_DEMOTE
 	context.subscriptions.push(
-		vscode.commands.registerCommand('shalldn.toggleErrWarn', () => {
-			client.sendRequest("toggleErrWarn",true);
+		vscode.commands.registerCommand('shalldn.toggleErrWarn', async () => {
+			await client.sendRequest("toggleErrWarn",true);
 		})
 	);
 
@@ -142,7 +149,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 				p.report({ increment: 0, message: "Exporting Shalldn project" });
 				progress = p;
-				const promise = new Promise<void>(resolve => {
+				const promise = new Promise<void>(async (resolve) => {
 					let ntfDsp = client.onNotification("exportHtml/progress", (data:{message?: string, increment?: number}) => {
 						let increment = data.increment;
 						let message = data.message;
@@ -159,7 +166,7 @@ export function activate(context: vscode.ExtensionContext) {
 							vscode.window.showInformationMessage("Shalldn: Export completed");
 						}
 					});
-					client.sendRequest("exportHtml", {folderUri:folderUris[0].toString(), workspaceUri:wsf.uri.toString()});
+					await client.sendRequest("exportHtml", {folderUri:folderUris[0].toString(), workspaceUri:wsf.uri.toString()});
 				});
 				return promise;
 			});
@@ -213,7 +220,7 @@ export function activate(context: vscode.ExtensionContext) {
 				uris.push(uri.toString());
 		});
 
-		client.onReady().then(() => {
+		client.onReady().then(async () => {
 			client.onRequest(new RequestType('analyzeStart'), ()=>{
 				showIndexingStatusBarMessage();				
 			})
@@ -231,8 +238,8 @@ export function activate(context: vscode.ExtensionContext) {
 					console.log("Shalldn failed analyzing files in workspace: "+err.toString());
 			})
 
-			client.sendRequest("ignoreFiles", [...ignores]);
-			client.sendRequest("analyzeFiles", {
+			await client.sendRequest("ignoreFiles", [...ignores]);
+			await client.sendRequest("analyzeFiles", {
 				files: uris,
 			});
 		});

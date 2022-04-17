@@ -29,3 +29,7 @@ The id of this requirement **shall** be marked with error "Requirement Test.Pars
 
 **Test.Editor.INFO_NOIMPL**
 The id of this requirement **shall** be marked with error "Requirement Test.Editor.ERR_NOIMPL does not have implementation".
+
+**Test.Editor.INV_IMPL**
+The id of this requirement **shall** be marked with error "Requirement Test.Editor.ERR_NOIMPL does not have implementation".
+* Implements **Non.Existing.Requirement**

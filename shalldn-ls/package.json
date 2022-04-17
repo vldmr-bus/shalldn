@@ -4,7 +4,7 @@
 	"description": "Shalldn requirements language support",
 	"author": "Vladimir Avdonin",
 	"license": "MIT",
-	"version": "0.0.23",
+	"version": "0.0.24",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/vldmr-bus/shalldn"
@@ -47,6 +47,11 @@
 			}
 		],
 		"commands": [
+			{
+				"command": "shalldn.toggleTestWarn",
+				"title": "Toggle warnings for requirements without tests in this file",
+				"category": "Shalldn"
+			},
 			{
 				"command": "shalldn.toggleErrWarn",
 				"title": "Toggle showing errors as warnings",

@@ -1,4 +1,4 @@
-import ShalldnRqRef from './model/ShalldnRqRef';
+import ShalldnRqRef, { RefKind } from './model/ShalldnRqRef';
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -304,6 +304,7 @@ export default class ShalldnProj {
 	public diagnostics: Map<string,ShalldnDiagnostic[]> = new Map();
 	private showAllAsWarnings = false;
 	private ignore?:MultIgnore;
+	private FileWithTestWarn = new Set<string>();
 
 	public setIgnores(ignores:[string,string[]][]) {
 		this.ignore = new MultIgnore();
@@ -365,7 +366,7 @@ export default class ShalldnProj {
 				Diagnostics.error(`Definition without subject`, clauseRange);
 				return;
 			}
-			let ref: ShalldnRqRef = {uri, id, tgtRange,clauseRange};
+			let ref: ShalldnRqRef = {uri, id, tgtRange,clauseRange,kind:RefKind.Implementation};
 			fileData?.RqRefs.push(ref);
 			let refs = this.RqRefs.get(ref.id);
 			if (!refs) {
@@ -445,14 +446,14 @@ export default class ShalldnProj {
 		this.Files.delete(uri);
 	}
 
-	// $$Implements Analyzer.INFO_NOIMPL_TGT
+	// $$Implements Analyzer.ERR_NOIMPL_TGT, Analyzer.TESTS_NO_TGT
 	checkRefsTargets(fileData:FileData, uri:string) {
 		fileData.RqRefs.forEach(ref => {
 			let defs = this.RqDefs.get(ref.id);
 			if (!defs || defs.length==0) {
 				this.addDiagnostic(
 					uri,
-					Diagnostics.error(`Implementation of non-exisiting requirement ${ref.id}`, ref.clauseRange)
+					Diagnostics.error(`${RefKind[ref.kind]} of non-existing requirement ${ref.id}`, ref.clauseRange)
 				);
 			}
 		});
@@ -532,7 +533,7 @@ export default class ShalldnProj {
 			if (fileData.RqDefs.length) {
 				let noimp:{id:string,idRange:Range}[] = [];			
 				fileData.RqDefs.forEach(def => {
-					let refs = this.RqRefs.get(def.id);
+					let refs = this.RqRefs.get(def.id)?.filter(r=>r.kind==RefKind.Implementation);
 					if (!refs || refs.length==0)
 						noimp.push({ id: def.id, idRange:def.idRange})
 				});
@@ -546,13 +547,41 @@ export default class ShalldnProj {
 						uri,
 						Diagnostics.info(`Requirement ${v.id} does not have implementation`, v.idRange)
 					));
+				if (this.FileWithTestWarn.has(uri)) 
+					this.addTestWarnings(uri,fileData);
 			}
 
-			// $$Implements Analyzer.INFO_NOIMPL_TGT
+			// $$Implements Analyzer.ERR_NOIMPL_TGT
 			this.checkRefsTargets(fileData, uri);
 		}
 	}
 	
+	// $$Implements Editor.TESTS
+	addTestWarnings(uri:string,fileData:FileData) {
+		fileData.RqDefs.forEach(def => {
+			let notests = !(this.RqRefs.get(def.id)?.some(r => r.kind == RefKind.Test));
+			if (notests)
+				this.addDiagnostic(
+					uri,
+					Diagnostics.warning(`Requirement ${def.id} does not have tests`, def.idRange)
+					)
+		});
+	}
+
+	public addRefNonRqFile(fileData: FileData, ref: ShalldnRqRef) {
+		fileData.RqRefs.push(ref);
+		let refs = this.RqRefs.get(ref.id);
+		if (!refs) {
+			refs = [];
+			this.RqRefs.set(ref.id, refs);
+		}
+		refs.push(ref);
+	}
+
+	fileHasReferences(uri:string) {
+		return this.Files.get(uri)?.RqRefs.length??0;
+	}
+
 	analyzeNonRqFile(uri:string, text:string) {
 		let fileData = this.Files.get(uri);
 		let firstPass = !fileData;
@@ -563,26 +592,36 @@ export default class ShalldnProj {
 		let lines = text.split('\n');
 		for (let l=0;l<lines.length; l++) {
 			let line = lines[l];
-			// $$Implements Analyzer.CMNT_IMPLMNT
-			let m = line.trim().match(/.*\$\$Implements\s+([\w\.]+(?:\s*,\s*[\w\.]+\s*)*)/)
-			if (!m)
+			// $$Implements Analyzer.CMNT_IMPLMNT, Analyzer.TEST_CLAUSE
+			let m = line.trim().match(/.*\$\$(?:Implements|Tests)\s+([\w\.]+(?:\s*,\s*[\w\.]+\s*)*)/);
+			if (m) {
+				let csp = line.search(/\$\$(Implements|Tests)/);
+				let clauseRange={start:{line:l,character:csp},end:{line:l,character:line.length}};
+				m[1].split(',').forEach(s=>{
+					let id = s.trim();
+					let sp = line.search(id);
+					let tgtRange:Range={start:{line:l,character:sp},end:{line:l,character:sp+id.length}};
+					let kind = line.substring(csp).startsWith('$$Implements')?RefKind.Implementation:RefKind.Test;
+					let ref: ShalldnRqRef = {uri, id, tgtRange, clauseRange, kind };
+					this.addRefNonRqFile(fileData!,ref);
+				});
+			}
+			if (path.extname(uri) != ".feature")
 				continue;
-			m[1].split(',').forEach(s=>{
-				let id = s.trim();
+			// $$Implements Analyzer.TEST_GHERKIN
+			m = line.trim().match(/^Scenario:\s*([\w_]+\.[\w_\.]+)\b/);
+			if (m) {
+				let id = m[1];
 				let sp = line.search(id);
 				let tgtRange:Range={start:{line:l,character:sp},end:{line:l,character:sp+id.length}};
-				let ref: ShalldnRqRef = {uri, id, tgtRange, clauseRange:tgtRange };
-				fileData?.RqRefs.push(ref);
-				let refs = this.RqRefs.get(ref.id);
-				if (!refs) {
-					refs = [];
-					this.RqRefs.set(ref.id, refs);
-				}
-				refs.push(ref);
-			});
+				let clauseRange={start:{line:l,character:line.search(/\S/)},end:{line:l,character:line.length}};
+				let ref: ShalldnRqRef = { uri, id, tgtRange, clauseRange, kind:RefKind.Test };
+				this.addRefNonRqFile(fileData!, ref);
+			}
+			
 		}
 
-		if (!firstPass) // $$Implements Analyzer.INFO_NOIMPL_TGT
+		if (!firstPass) // $$Implements Analyzer.ERR_NOIMPL_TGT, Analyzer.TESTS_NO_TGT
 			this.checkRefsTargets(fileData,uri);
 
 	}
@@ -675,7 +714,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		});
 	}
 
-	// $$Implements Analyzer.IMPLNT
+	// $$Implements Analyzer.IMPLNT, Analyzer.TESTS
 	public findReferences(id: string): Location[] {
 		let defs = this.RqRefs.get(id) || [];
 		return defs.map(def => <Location>{
@@ -708,7 +747,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 	}
 
 	// $$Implements Editor.ERR_DEMOTE
-	public toggleErrWarn() {
+	public async toggleErrWarn() {
 		this.showAllAsWarnings = !this.showAllAsWarnings;
 		for (const uri of this.diagnostics.keys()) {
 			let diagnostics = this.diagnostics.get(uri);
@@ -718,8 +757,27 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 				diagnostics.forEach(diag=>diag.demote());
 			else
 				diagnostics.forEach(diag => diag.promote());
-			this.connection?.sendDiagnostics({ uri, diagnostics });
+			await this.connection?.sendDiagnostics({ uri, diagnostics });
 		}
+	}
+
+	// $$Implements Editor.TESTS
+	public async toggleTestWarn(uri:string) {
+		if (path.extname(uri).toLowerCase() != '.shalldn')
+			return;
+		let fileData = this.Files.get(uri);
+		if (!fileData)
+			return;
+		let diagnostics = this.getDiagnostics(uri);
+		if (this.FileWithTestWarn.has(uri)) {
+			this.FileWithTestWarn.delete(uri);
+			diagnostics = diagnostics.filter(d=>!d.message.endsWith("does not have tests"))
+			this.diagnostics.set(uri, diagnostics);
+		} else {
+			this.FileWithTestWarn.add(uri);
+			this.addTestWarnings(uri,fileData);
+		}
+		await this.connection?.sendDiagnostics({ uri, diagnostics });
 	}
 
 	public expandMD(apath:string):string{
@@ -882,7 +940,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 			rpaths.push(`${rp}/${df}`);
 			progress(`Exported ${rp}`,i/files.length*100);
 		}
-		
+
 		let dot = String.fromCharCode(1);
 		let dotregx = new RegExp(dot, 'g');
 		let sep = String.fromCharCode(2);

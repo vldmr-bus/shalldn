@@ -6,4 +6,5 @@ export default interface Test {
 	newFile?: boolean;
 	locLinks: (vscode.Location | vscode.LocationLink)[]|undefined;
 	complList: vscode.CompletionList|undefined;
+	thatCommand: string|undefined;
 }
