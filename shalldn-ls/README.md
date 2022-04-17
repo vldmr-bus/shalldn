@@ -27,16 +27,33 @@ With the above description in mind, here is a complete valid Shalldn document:
 ## Extension functionality
 
 The language server currently provides the following features:
+
+### Navigation 
+The extension provides navigation through requirement IDs. Control-click on id to open defining requirement or jump upper level (justification) or lower level (implementation) requirements,  to implementation or test for that requirement. 
+
+![navigation demo](media/nav.gif)
+
 ### Problem highlights
 The extension highlights Shalldn problems with squiggly lines in text and lists them in "Problems" window, similar to compile errors for programming languages.
 
 For .shalldn files problems include language syntax violations and project-wide problems, such as missing implementation for a requirement. For all other types of files in the project problems are limited to invalid *implementation clause*s such as including an identifier for non-existent requirement.
 
-### Navigation to requirement definition
-The extension provides navigation from selected requirement identifier in any text file to the definition in .shalldn file. Press control key and move mouse pointer to an identifier in the text - the identifier will be underlined, and clicking on it will open the .shalldn with it definition. Otherwise, place the cursor inside the identifier and press keyboard shortcut for "Go to Definition" (F12 by default).
+![problems demo](media/problems.gif)
 
-### Navigation to *implementation clause*
-The extension allows navigation from selected requirement identifier in any text file to *implementation clause*s for that identifier in all files of the workspace. Press control key and move mouse pointer to an identifier in the text - the identifier will be underlined, and clicking on it will open the list of files with corresponding implementations. Otherwise, place the cursor inside the identifier and press keyboard shortcut for "Go to references" (Shift-F12 by default).
+### Editing completion
+The extension provides typing completions for keywords and requirement IDs both in .shalldn requirements files and other language files.
+
+![completions demo](media/completions.gif)
+
+### Refactoring
+The extension assist in renaming requirement IDs in definitions and all references.
+
+![refactor demo](media/refactor.gif)
+
+### Tagging
+The extension support tagging individual requirements for various tracking purposes, such as status or change requests. Navigator window allows quick overview of tageed requirements.
+
+![tags demo](media/tags.gif)
 
 ## Complete example
 In order to test all available features of the extension you can download the [source code of Shalldn project from GitHub](https://github.com/vldmr-bus/shalldn), which contains a set of Shalldn specification traceable to source code of the extension.
