@@ -561,6 +561,22 @@ export default class ShalldnProj {
 					));
 				if (this.FileWithTestWarn.has(uri)) 
 					this.addTestWarnings(uri,fileData);
+
+				// $$Implements Parser.ERR_WORDS
+				let regex=/\b(TBD|TODO|FIXME)\b/g;
+				let match: RegExpExecArray | null;
+				let lines = text.replace(/\r/g, '').split('\n');
+				for (let i=0;i<lines.length;i++) {
+					let line = lines[i];
+					let m = line.match(regex);
+					if (m) {
+						let def = fileData.RqDefs.find(d => d.range.start.line <= i && d.range.end.line >= i);
+						if (!def)
+							continue;
+						for (const w of new Set(m))
+							this.addDiagnostic(uri,Diagnostics.error(`Requirement ${def.id} contains ${w}`,def.idRange));
+					}
+				}
 			}
 
 			// $$Implements Analyzer.ERR_NOIMPL_TGT
@@ -801,8 +817,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 	public expandMD(apath:string):string{
 		let uri = URI.file(apath).toString();
 		let text = fs.readFileSync(apath, 'utf8');
-		let res = text.replace(/\r/g,'');
-		let lines = res.split('\n');
+		let lines = text.replace(/\r/g, '').split('\n');
 		this.TermDefs.forEach(terms=>{
 			let term = terms[0];
 			let dapath = URI.parse(term.uri).fsPath;

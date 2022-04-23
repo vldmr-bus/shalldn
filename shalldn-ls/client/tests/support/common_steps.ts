@@ -112,7 +112,7 @@ function checkNoError(this:Test, text:string){
 		assert.fail('The test step does not have a required document')
 	const actualDiagnostics = vscode.languages.getDiagnostics(this.docUri);
 
-	let problem = actualDiagnostics.find(d => d.message == text);
+	let problem = actualDiagnostics.find(d => d.message.search(text)>=0);
 	assert.strictEqual(problem, undefined, `Problem found with text "${text}"`);
 })
 

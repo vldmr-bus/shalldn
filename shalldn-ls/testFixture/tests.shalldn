@@ -12,6 +12,15 @@ $Tags_Tag1
 **Test.Parser.IMPLMNT_GRP.References**
 All requirements in the same section as this requirement **shall** be included in the list of references for the heading "A *section of informal requirements*" in the document "test-informal.shalldn".
 
+**Test.Parser.TBD_test**
+This requirement **shall** be marked with error because it has **TBD** in it.
+
+**Test.Parser.TODO_test**
+This requirement **shall** be marked with error because it has TODO in it.
+
+**Test.Parser.FIXME_test**
+This requirement **shall** be marked with error because it has (FIXME) in it.
+
 ## Group implementation ends here
 
 **Test.Parser.IMPLMNT_INDVDL**
