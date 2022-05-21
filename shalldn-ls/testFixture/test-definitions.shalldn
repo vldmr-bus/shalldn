@@ -38,3 +38,6 @@ The title of this section is marked with error because it is duplicate definitio
 
 #### Term 3
 The third term in second definitions section.
+
+#### Term 4
+This term contains cross-reference for refactoring test (see **Test.Parser.IMPLMNT_INDVDL**).

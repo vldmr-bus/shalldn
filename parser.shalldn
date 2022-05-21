@@ -59,11 +59,15 @@ The parser **shall** indicate error condition when a requirement that is not wit
 **Parser.WARN_RTNL**  
 The parser **shall** indicate warning condition when a requirement that is not within a section with a group *group implementation clause* and is not followed by unordered list that includes *rationale clause* but not an *individual implementation clause*.
 
-**Parser.ERR_WORDS**
-The parser **shall** indicate error condition when a requirement text contain one of the words listed below:
-* TBD;
-* TODO;
-* FIXME;
+**Parser.ERR_WORDS**  
+The parser **shall** indicate error condition when a requirement text contain one of the words listed below not enclosed in quotation marks:
+* "TBD";
+* "TODO";
+* "FIXME";
+
+**Parser.XREF**  
+The parser **shall** a text fragment enclosed in parenthesis starting with the word "see" followed by one or more comma separated *separately bolded* *identifier*s as a *cross-reference* *(n.b.)*.
+
 
 ## Term definitions
 

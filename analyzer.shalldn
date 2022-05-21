@@ -58,6 +58,9 @@ The analyzer **shall** indicate a problem condition of informational severity fo
 **Analyzer.ERR_NOIMPL_TGT**  
 The analyzer **shall** indicate an error condition for every *implementation clause* that has an *identifier* for which there is no requirement defined in the project.
 
+**Analyzer.ERR_XREF_TGT**  
+The analyzer **shall** indicate an error condition for every *identifier* in a *cross-reference*  for which there is no requirement defined in the project.
+
 **Analyzer.DEFS**
 For any term definition in the project in response to query with definition subject the analyzer **shall** produce a list of text references to the matching definition body.
 

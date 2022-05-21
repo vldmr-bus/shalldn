@@ -216,7 +216,7 @@ async function getReferences(this:Test,repl:string, word:string,text:string){
 		)) as vscode.WorkspaceEdit;
 	}
 	catch (e:any) {
-		if (e.message != 'No result.')
+		if (!e.message.startsWith('No result.'))
 			throw e;
 	}
 })

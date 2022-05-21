@@ -6,7 +6,7 @@ import * as rx from 'rxjs';
 import { marked } from "marked";
 import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts';
 import { shalldnLexer } from './antlr/shalldnLexer';
-import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, shalldnParser, TitleContext } from './antlr/shalldnParser';
+import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, shalldnParser, TitleContext, XrefContext } from './antlr/shalldnParser';
 import { shalldnListener } from './antlr/shalldnListener';
 import { Capabilities } from './capabilities';
 import { integer, Location, LocationLink, Position, Range, _Connection } from 'vscode-languageserver';
@@ -144,6 +144,16 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			this.groupImplmentation.unshift({level,ids:ids.map(id=>id.id)});
 		}
 		this.proj.addRefs(this.uri,parentRq||parentHeading||parentTitle||ctx, ctx, ids);
+	}
+
+	// $$Implements Parser.XREF
+	enterXref(ctx: XrefContext) {
+		let ids: { id: string, range: Range }[] = [];
+		ctx.bolded_id().forEach(x=>ids.push({
+			id: x.IDENTIFIER()?.text || x.WORD()?.text || '',
+			range: Util.rangeOfContext(x)
+		}));
+		this.proj.addXrefs(this.uri, ctx, ids);
 	}
 
 	// $$Implements Parsers.INLN_DEF_DRCT
@@ -297,6 +307,7 @@ export class AnalyzerPromise<T> implements Thenable<T> {
 
 class FileData {
 	public RqRefs: ShalldnRqRef[] = [];
+	public Xrefs: ShalldnRqRef[] = [];
 	public RqDefs: ShalldnRqDef[] = [];
 	public TermDefs: ShalldnTermDef[]|undefined;
 	public subject?: string;
@@ -311,6 +322,7 @@ export default class ShalldnProj {
 
 	private RqDefs: Map<string,ShalldnRqDef[]> = new Map();
 	private RqRefs: Map<string, ShalldnRqRef[]> = new Map();
+	private Xrefs: Map<string, ShalldnRqRef[]> = new Map();
 	private TermDefs: Map<string, ShalldnTermDef[]> = new Map();
 	private Files:Map<string,FileData> = new Map();
 	public diagnostics: Map<string,ShalldnDiagnostic[]> = new Map();
@@ -389,6 +401,25 @@ export default class ShalldnProj {
 		});
 	}
 
+	public addXrefs(uri: string, clause: ParserRuleContext, ids: { id: string, range: Range }[]) {
+		let fileData = this.Files.get(uri);
+		let clauseRange = Util.rangeOfContext(clause);
+		ids.forEach(id => {
+			if (!id) {
+				Diagnostics.error(`Empty cross-reference`, clauseRange);
+				return;
+			}
+			let ref: ShalldnRqRef = { uri, id: id.id, idRange: id.range, clauseRange, kind: RefKind.Xref };
+			fileData?.Xrefs.push(ref);
+			let refs = this.Xrefs.get(ref.id);
+			if (!refs) {
+				refs = [];
+				this.Xrefs.set(ref.id, refs);
+			}
+			refs.push(ref);
+		});
+	}
+
 	public addTerm(def: ShalldnTermDef) {
 		let fileData = this.Files.get(def.uri);
 		if (!def.subj) {
@@ -458,14 +489,24 @@ export default class ShalldnProj {
 		this.Files.delete(uri);
 	}
 
-	// $$Implements Analyzer.ERR_NOIMPL_TGT, Analyzer.TESTS_NO_TGT
 	checkRefsTargets(fileData:FileData, uri:string) {
+		// $$Implements Analyzer.ERR_NOIMPL_TGT, Analyzer.TESTS_NO_TGT
 		fileData.RqRefs.forEach(ref => {
 			let defs = this.RqDefs.get(ref.id);
 			if (!defs || defs.length==0) {
 				this.addDiagnostic(
 					uri,
 					Diagnostics.error(`${RefKind[ref.kind]} of non-existing requirement ${ref.id}`, ref.clauseRange)
+				);
+			}
+		});
+		// $$Implements Analyzer.ERR_XREF_TGT
+		fileData.Xrefs.forEach(ref => {
+			let defs = this.RqDefs.get(ref.id);
+			if (!defs || defs.length==0) {
+				this.addDiagnostic(
+					uri,
+					Diagnostics.error(`Reference to non-existing requirement ${ref.id}`, ref.idRange)
 				);
 			}
 		});
@@ -746,6 +787,10 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 
 	public findReferences(id:string) {
 		return this.RqRefs.get(id) || [];
+	}
+
+	public findXReferences(id:string) {
+		return this.Xrefs.get(id) || [];
 	}
 
 	// $$Implements Analyzer.IMPLNT, Analyzer.TESTS

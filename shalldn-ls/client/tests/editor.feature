@@ -257,11 +257,12 @@ Feature: Editor
     """
     **Test.Parser.IMPLMNT_INDVDL**
     """
-    Then total number of edits shall be 4
+    Then total number of edits shall be 5
     And the list of edits shall include 1 in file "lower-level.shalldn"
     And the list of edits shall include 1 in file "non-requirement.txt"
     And the list of edits shall include 1 in file "tests.feature"
     And the list of edits shall include 1 in file "tests.shalldn"
+    And the list of edits shall include 1 in file "test-definitions.shalldn"
 
     Scenario: Editor.RENAME_VALIDATE
     Given the test file named "tests.shalldn" is opened

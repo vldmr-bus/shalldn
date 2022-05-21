@@ -479,7 +479,7 @@ connection.onRenameRequest((params: RenameParams)=>{
 
 	let changes:{[uri: string]: TextEdit[]} = {};
 	changes[def.uri] = [{range:def.idRange,newText:params.newName}];
-	let refs = project.findReferences(id.text);
+	let refs = [...project.findReferences(id.text),...project.findXReferences(id.text)];
 	refs.forEach(r=>{
 		if (!changes.hasOwnProperty(r.uri))
 			changes[r.uri]=[]

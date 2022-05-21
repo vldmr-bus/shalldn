@@ -32,6 +32,13 @@ Feature: Analyzer
     Implementation of non-existing requirement Non.Existing.Requirement
     """
 
+    Scenario: Analyzer.ERR_XREF_TGT**
+    Given the test file named "tests.shalldn" is opened
+    Then editor problems shall include error with the text:
+    """
+    Reference to non-existing requirement Non.Existing.Requirement
+    """
+
     @discard_changes
     Scenario: Analyzer.IGNORE_NONPROJ
     Given the test file named "../../analyzer.shalldn" is opened

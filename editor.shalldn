@@ -78,7 +78,7 @@ When in a *requirement file* the editor caret is located after a string of words
 ## Refactoring
 
 **Editor.RENAME**
-When in a project file the editor caret is located inside *identifier* of an existing requirement the editor **shall** provide operation for replacing that identifier with a new one in the requirement definition and in all referencing clauses.
+When in a project file the editor caret is located inside *identifier* of an existing requirement the editor **shall** provide operation for replacing that identifier with a new one in the requirement definition and in all referencing *implementation clause*s, *test clause*s and *cross-reference*s.
 
 **Editor.RENAME_VALIDATE**
 The editor **shall** fail operation for replacing a requirement *identifier* without changing any files if the replacement text does not conform the definition of *identifier*.

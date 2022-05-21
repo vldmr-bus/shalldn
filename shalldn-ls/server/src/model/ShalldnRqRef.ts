@@ -2,7 +2,8 @@ import { Range } from 'vscode-languageserver-types';
 
 export enum RefKind {
 	Implementation,
-	Test
+	Test,
+	Xref
 }
 
 export default interface ShalldnRqRef {
