@@ -563,7 +563,7 @@ export default class ShalldnProj {
 					this.addTestWarnings(uri,fileData);
 
 				// $$Implements Parser.ERR_WORDS
-				let regex=/\b(TBD|TODO|FIXME)\b/g;
+				let regex=/(?<=[^'"])\b(TBD|TODO|FIXME)\b(?=[^'"])/g;
 				let match: RegExpExecArray | null;
 				let lines = text.replace(/\r/g, '').split('\n');
 				for (let i=0;i<lines.length;i++) {
