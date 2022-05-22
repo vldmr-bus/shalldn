@@ -131,12 +131,8 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		else
 			ctx.bolded_id().forEach(x => ids.push({
 				id:x.IDENTIFIER()?.text || x.WORD()?.text||'',
-				range: Util.rangeOfContext(x)
+				range: Util.rangeOfContext(x,2)
 			}));
-		ids.forEach(x=>{
-			x.range.start.character += 2;
-			x.range.end.character -= 2;
-		})
 		if (parentRq == null && (parentTitle || parentHeading) ) {
 			let level = (parentHeading)?parentHeading.hashes().childCount:1;
 			while (this.groupImplmentation.length && this.groupImplmentation[0].level>=level)
@@ -151,7 +147,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		let ids: { id: string, range: Range }[] = [];
 		ctx.bolded_id().forEach(x=>ids.push({
 			id: x.IDENTIFIER()?.text || x.WORD()?.text || '',
-			range: Util.rangeOfContext(x)
+			range: Util.rangeOfContext(x,2)
 		}));
 		this.proj.addXrefs(this.uri, ctx, ids);
 	}
@@ -470,6 +466,13 @@ export default class ShalldnProj {
 				return;
 			let newrefs = refs.filter(d => d.uri != ref.uri);
 			this.RqRefs.set(ref.id, newrefs);
+		});
+		fileData.Xrefs.forEach(ref => {
+			let refs = this.Xrefs.get(ref.id);
+			if (!refs)
+				return;
+			let newrefs = refs.filter(d => d.uri != ref.uri);
+			this.Xrefs.set(ref.id, newrefs);
 		});
 		(fileData?.TermDefs || []).forEach(def => {
 			let defs = this.TermDefs.get(def.subj);

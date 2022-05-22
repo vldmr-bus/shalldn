@@ -5,11 +5,12 @@ import path = require('path');
 import { Position, Range } from 'vscode-languageserver-types'
 
 export namespace Util {
-	export function rangeOfContext(ctx: ParserRuleContext):Range {
+	export function rangeOfContext(ctx: ParserRuleContext, inset?:number):Range {
+		inset = inset||0;
 		let stop = ctx.stop||ctx.start;
 		return {
-			start: { line: ctx.start.line-1, character: ctx.start.charPositionInLine },
-			end: { line: stop.line-1, character: stop.charPositionInLine + (stop.text?.length||0) }
+			start: { line: ctx.start.line-1, character: ctx.start.charPositionInLine+inset },
+			end: { line: stop.line-1, character: stop.charPositionInLine + (stop.text?.length||0)-inset }
 		}
 	}
 	export function startOfContext(ctx: ParserRuleContext): Position {
