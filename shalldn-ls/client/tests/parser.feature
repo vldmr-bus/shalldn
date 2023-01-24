@@ -9,7 +9,7 @@ Feature: Parser
 	"""
 	Then the list shall contains definition in file "test-informal.shalldn" with text:
 	"""
-	section of informal requirements
+	This section is an example of informal requirement, which can be implemented by formal requirements in other files.
 	"""
 
 	Scenario: Parser.IMPLMNT_INDVDL uplink
@@ -21,7 +21,7 @@ Feature: Parser
 	"""
 	Then the list shall contains definition in file "test-informal.shalldn" with text:
 	"""
-	sub-section of informal requirements
+	This sub-section is an example of informal requirement, which can be implemented by formal requirements in other files.
 	"""
 
 	Scenario: Parser.ERR_NO_JSTFCTN with existing file

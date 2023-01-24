@@ -6,7 +6,7 @@ import * as rx from 'rxjs';
 import { marked } from "marked";
 import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts';
 import { shalldnLexer } from './antlr/shalldnLexer';
-import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, shalldnParser, TitleContext, XrefContext } from './antlr/shalldnParser';
+import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, SentenceContext, shalldnParser, TitleContext, XrefContext } from './antlr/shalldnParser';
 import { shalldnListener } from './antlr/shalldnListener';
 import { Capabilities } from './capabilities';
 import { integer, Location, LocationLink, Position, Range, _Connection } from 'vscode-languageserver';
@@ -35,6 +35,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	private groupImplmentation:{level:integer,ids:string[]}[]=[];
 	private defSectLevel:integer|undefined;
 	private currentTermDef: ShalldnTermDef|undefined;
+	private currentInfrmlRq: ShalldnRqDef|undefined;
 
 	getText(ctx: ParserRuleContext|undefined):string {
 		if (!ctx)
@@ -281,6 +282,14 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 				Util.rangeOfContext(ctx)
 			));
 		defs.forEach(d=>this.proj.addRequirement(d));
+		this.currentInfrmlRq = defs.length?defs[0]:undefined;
+	}
+
+	enterSentence(ctx: SentenceContext) {
+		if (!this.currentInfrmlRq)
+			return;
+		this.currentInfrmlRq.range = Util.rangeOfContext(ctx);
+		this.currentInfrmlRq = undefined;
 	}
 
 	exitDocument(ctx: DocumentContext) {
