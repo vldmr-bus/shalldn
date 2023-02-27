@@ -61,7 +61,7 @@ Feature: Definitions
 	Given the test file named "test-definitions.shalldn" is opened
 	Then editor problems shall include error for the words "Term 2" with the text:
 	"""
-	The term "term 2" has multiple definitions
+	The term "Term 2" has multiple definitions
 	"""
 
 	

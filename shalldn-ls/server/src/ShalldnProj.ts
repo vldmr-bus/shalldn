@@ -434,16 +434,17 @@ export default class ShalldnProj {
 			);
 			return;
 		}
+		let subj = def.subj;
 		// $$Implements Analyzer.DEFS_CASE
-		if (def.subj.search(/[a-z]/) >= 0)
-			def.subj = def.subj.toLowerCase();
+		if (subj.search(/[a-z]/) >= 0)
+			subj = subj.toLowerCase();
 		if (!fileData!.TermDefs)
 			fileData!.TermDefs=[];
 		fileData!.TermDefs.push(def);
-		let defs = this.TermDefs.get(def.subj);
+		let defs = this.TermDefs.get(subj);
 		if (!defs) {
 			defs = [];
-			this.TermDefs.set(def.subj, defs)
+			this.TermDefs.set(subj, defs)
 		}
 
 		let multiple = defs.length > 0;
@@ -484,11 +485,14 @@ export default class ShalldnProj {
 			this.Xrefs.set(ref.id, newrefs);
 		});
 		(fileData?.TermDefs || []).forEach(def => {
-			let defs = this.TermDefs.get(def.subj);
+			let subj = def.subj;
+			if (subj.search(/[a-z]/) >= 0)
+				subj = subj.toLowerCase();
+			let defs = this.TermDefs.get(subj);
 			if (!defs)
 				return;
 			let newdefs = defs.filter(d => d.uri != def.uri);
-			this.TermDefs.set(def.subj, newdefs);
+			this.TermDefs.set(subj, newdefs);
 		});
 
 	}
@@ -823,7 +827,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		// $$Implements Analyzer.DEFS_CASE
 		if (subj.search(/[a-z]/)>=0)
 			subj=subj.toLowerCase();
-		let defs = this.TermDefs.get(tr.text)||[];
+		let defs = this.TermDefs.get(subj)||[];
 		return defs.map(def => <LocationLink>{
 			targetUri: def.uri,
 			targetRange: def.bodyRange,
