@@ -12,6 +12,9 @@ The editor**shall** provide navigation to an *implementation clause* from any oc
 **Editor.NAV_TESTS**
 The editor**shall** provide navigation to a *test clause* from any occurrence of an *identifier* of the clause in any text file of the Shalldn project.
 
+**Editor.NAV_XREF**
+The editor**shall** provide navigation to a *cross-reference* from any occurrence of an *identifier* included in the *cross-reference* in any text file of the Shalldn project.
+
 **Editor.NAV_TERM_DEF**
 The editor **shall** provide navigation to a term definition from any occurrence of the subject of the definition that is **separately bolded** or *separately italicized* in any shalldn file in the project.
 

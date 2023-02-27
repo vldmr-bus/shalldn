@@ -808,6 +808,10 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 	// $$Implements Analyzer.IMPLNT, Analyzer.TESTS
 	public findReferenceLocations(id: string): Location[] {
 		let defs = this.RqRefs.get(id) || [];
+		// $$Implements Editor.NAV_XREF
+		let xrefs = this.Xrefs.get(id);
+		if (xrefs)
+			defs = defs.concat(xrefs);
 		return defs.map(def => <Location>{
 			uri: def.uri,
 			range: def.tgtRange||def.idRange

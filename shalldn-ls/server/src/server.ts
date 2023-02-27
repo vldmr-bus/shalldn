@@ -298,7 +298,7 @@ connection.onDefinition((params, cancellationToken) => {
 	});
 });
 
-// $$Implements Editor.NAV_IMPL, Editor.NAV_TESTS
+// $$Implements Editor.NAV_IMPL, Editor.NAV_TESTS, Editor.NAV_XREF
 connection.onReferences((params)=>{
 	return new Promise((resolve, reject) => {
 		const document = documents.get(params.textDocument.uri);
