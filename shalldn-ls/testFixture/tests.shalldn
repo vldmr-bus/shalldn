@@ -21,6 +21,9 @@ This requirement **shall** be marked with error because it has TODO in it.
 **Test.Parser.FIXME_test**
 This requirement **shall** be marked with error because it has (FIXME) in it.
 
+**Test.Editor.GRP_IMPL**  
+This requirement **shall** be implemented by section and by individual requirement in *lower-level.shalldn* file.
+
 ## Group implementation ends here
 
 **Test.Parser.IMPLMNT_INDVDL**

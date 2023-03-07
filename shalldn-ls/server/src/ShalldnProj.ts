@@ -112,7 +112,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		let parentRq = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_requirement) ? <RequirementContext>ctx.parent.parent:undefined;
 		// $$Implements Parser.IMPLMNT_GRP
 		let parentTitle = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_title) ? <TitleContext>ctx.parent.parent : undefined;
-		let parentHeading = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_heading) ? <HeadingContext>ctx.parent.parent : undefined;
+		let parentHeading:HeadingContext|undefined = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_heading) ? <HeadingContext>ctx.parent.parent : undefined;
 		// $$Implements Parser.ERR_IMPLMNT
 		if (!(parentRq || parentHeading || parentTitle)) {
 			this.proj.addDiagnostic(
@@ -140,7 +140,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 				this.groupImplmentation.shift();
 			this.groupImplmentation.unshift({level,ids:ids.map(id=>id.id)});
 		}
-		this.proj.addRefs(this.uri,parentRq||parentHeading||parentTitle||ctx, ctx, ids);
+		this.proj.addRefs(this.uri,parentRq||parentHeading?.phrase()||parentTitle||ctx, ctx, ids);
 	}
 
 	// $$Implements Parser.XREF

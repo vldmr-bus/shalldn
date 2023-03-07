@@ -2,6 +2,13 @@
 
 This **TBD** does not have an error because its not in requirement.
 
-**The.lower.level**
-This lower-level requirement **shall** implement some upper level requirement.
-* Implements **Test.Parser.IMPLMNT_INDVDL**, **Test.Analyzer.CMNT_IMPLMNT**
+**The.lower.level**  
+This lower-level requirement **shall** implement some upper level requirements.
+* Implements **Test.Parser.IMPLMNT_INDVDL**, **Test.Analyzer.CMNT_IMPLMNT**, **Test.Editor.GRP_IMPL**
+
+## Group implementation of requirement example
+* Implements **Test.Editor.GRP_IMPL**
+
+**The.lower.level.group**  
+This lower-level requirement **shall** implement requirements in tests.shalldn file due to being inside group implementation section.
+
