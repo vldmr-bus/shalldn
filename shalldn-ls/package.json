@@ -125,11 +125,13 @@
 			]
 		},
 		"viewsContainers": {
-			"activitybar": [{
-				"id": "shalldn-explorer",
-				"title": "Shalldn Explorer",
-				"icon": "image/Shalldn-24x24.png"
-			}]
+			"activitybar": [
+				{
+					"id": "shalldn-explorer",
+					"title": "Shalldn Explorer",
+					"icon": "image/Shalldn-24x24.png"
+				}
+			]
 		},
 		"views": {
 			"shalldn-explorer": [
@@ -191,7 +193,7 @@
 		"serve": "tsc -b && node ./server/out/http-server.js"
 	},
 	"devDependencies": {
-		"@cucumber/cucumber": "^8.0.0-rc.1",
+		"@cucumber/cucumber": "^9.1.2",
 		"@types/mocha": "^8.2.2",
 		"@types/node": "^16.11.9",
 		"@typescript-eslint/eslint-plugin": "^4.23.0",
