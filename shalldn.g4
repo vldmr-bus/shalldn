@@ -50,5 +50,5 @@ l_element: sentence* (phrase ':')? ;
 ul_element: STAR l_element ;
 ol_element: NUMBER '.'? l_element ;
 list: ('\n'+(ul_element|ol_element|implmnt))+;
-sentence: phrase sentence_stop;
+sentence: phrase ( sentence_stop | ':' list);
 document: '\n'* title (heading|requirement|sentence|CODE_BLOCK|TABLE_ROW|(phrase ':'|heading)? list|'\n'+)+ EOF;

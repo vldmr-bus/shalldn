@@ -7,6 +7,10 @@ $Tags_Tag1 $Tags_Tag2
 **Test.Parser.IMPLMNT_GRP.Link**
 The *implementation clause* at heading of the section containing this requirement **shall** be linked to the heading in the document "test-informal.shalldn".
 
+**Test.Parser.IMPL_INFORMAL_WITH_LIST**
+Hovering on implementation clause of this requirement **shall** reveal complete test of uplink informal requirement including full list.
+* Implements **section of informal requirement with list**
+
 ### Sub-section is still included in group implementation
 $Tags_Tag1
 **Test.Parser.IMPLMNT_GRP.References**

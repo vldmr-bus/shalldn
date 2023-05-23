@@ -5,5 +5,10 @@ This shalldn document contains only informal requirements, and no formal ones.
 ## A *section of informal requirements*
 This section is an example of informal requirement, which can be implemented by formal requirements in other files.
 
+## A *section of informal requirement with list*
+This section is an example of informal requirement that contains a list:
+* item 1;
+* item 2;
+
 ### A *sub-section of informal requirements*
 This sub-section is an example of informal requirement, which can be implemented by formal requirements in other files.
