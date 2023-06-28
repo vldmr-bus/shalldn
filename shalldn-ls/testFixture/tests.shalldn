@@ -50,3 +50,11 @@ The id of this requirement **shall** be marked with error "Requirement Test.Edit
 The id of this requirement **shall** be marked with error "Requirement Test.Editor.ERR_NOIMPL does not have implementation".
 * Implements **Non.Existing.Requirement**
 * Here also is bad cross-reference: (see **Non.Existing.Requirement**);
+
+**Test.Parser.IMPL_AFTER_MULTILEVEL_LIST**  
+The implementation clause of this requirement **shall** be recognized even though it follows multi level bullet list:
+* First level item one with sub-list:
+    * Second level item one;
+    * Second level item two;
+* First level item two;
+* Implements **sub-section of informal requirements**

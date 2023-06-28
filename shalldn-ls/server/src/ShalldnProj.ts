@@ -6,7 +6,7 @@ import * as rx from 'rxjs';
 import { marked } from "marked";
 import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts';
 import { shalldnLexer } from './antlr/shalldnLexer';
-import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, SentenceContext, shalldnParser, TitleContext, XrefContext } from './antlr/shalldnParser';
+import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, Sentence_with_listContext, SentenceContext, shalldnParser, TitleContext, XrefContext } from './antlr/shalldnParser';
 import { shalldnListener } from './antlr/shalldnListener';
 import { Capabilities } from './capabilities';
 import { integer, Location, LocationLink, Position, Range, _Connection } from 'vscode-languageserver';
@@ -118,7 +118,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			this.proj.addDiagnostic(
 				this.uri,
 				Diagnostics.error(
-				"Implementation clause in the list that is not immidiately after requirement or heading", 
+				"Implementation clause in the list that is not immediately after requirement or heading", 
 				Util.rangeOfContext(ctx)
 			));
 			return;
@@ -285,12 +285,16 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		this.currentInfrmlRq = defs.length?defs[0]:undefined;
 	}
 
-	enterSentence(ctx: SentenceContext) {
+	informalText(ctx:ParserRuleContext) {
 		if (!this.currentInfrmlRq)
 			return;
 		this.currentInfrmlRq.range = Util.rangeOfContext(ctx);
 		this.currentInfrmlRq = undefined;
 	}
+
+	enterSentence = (ctx:SentenceContext) => this.informalText(ctx);
+
+	enterSentence_with_list = (ctx: Sentence_with_listContext) => this.informalText(ctx);
 
 	exitDocument(ctx: DocumentContext) {
 		this.completeTermDef({line:ctx.stop!.line, character:ctx.stop!.charPositionInLine});
