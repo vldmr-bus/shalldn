@@ -23,7 +23,7 @@ WORD: WORD_CHAR+;
 IDENTIFIER : WORD ('.' WORD)+ ; // *(see identifier)*
 SHALL: ('**' 'shall' '**'| '__' 'shall' '__') ;
 NB: '*(n.b.)*';
-URL: [hH][tT][tT][pP][sS]? '://' [a-zA-Z0-9.&?/_\-+=]+ ;
+URL: ([hH][tT][tT][pP][sS]? | [fF][iI][lL][eE]) '://' [a-zA-Z0-9.&?/_\-+=]+ ;
 
 tag: '$' id=WORD (':' value=~'\n'+ )?;
 bolded_id: ('**' (WORD|IDENTIFIER) '**' | '__' (WORD|IDENTIFIER) '__') ;
