@@ -1065,7 +1065,9 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 			idx += '</ul></li>'
 		}
 		tree.forEach(n=>printn(n));
-		idx += '</body></html>'
-		fs.writeFileSync(path.resolve(rootp, 'index.html'), idx);
+		idx += '</body></html>';
+		let ixp = path.resolve(rootp, 'index.html');
+		fs.writeFileSync(ixp, idx);
+		progress(ixp,100);
 	}
 }

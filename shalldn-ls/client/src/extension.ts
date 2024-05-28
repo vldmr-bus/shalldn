@@ -16,6 +16,7 @@ import ShalldnTermDef from './ShalldnTermDef';
 import { TagTreeDataProvider, TagTreeNode } from './tagTreeDataProvider';
 import { Trees } from '../../shared/lib/trees';
 import { map } from 'rxjs';
+import { URI } from 'vscode-uri';
 
 let client: LanguageClient;
 let statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
@@ -164,6 +165,7 @@ export function activate(context: vscode.ExtensionContext) {
 							ntfDsp.dispose();
 							resolve();
 							vscode.window.showInformationMessage("Shalldn: Export completed");
+							vscode.env.openExternal(URI.file(message));
 						}
 					});
 					await client.sendRequest("exportHtml", {folderUri:folderUris[0].toString(), workspaceUri:wsf.uri.toString()});
