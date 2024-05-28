@@ -34,18 +34,6 @@
 	],
 	"main": "./client/out/extension",
 	"contributes": {
-		"languages": [
-			{
-				"id": "shalldn",
-				"extensions": [
-					".shalldn"
-				],
-				"aliases": [
-					"Shalldn"
-				],
-				"configuration": "./language-configuration.json"
-			}
-		],
 		"commands": [
 			{
 				"command": "shalldn.toggleTestWarn",
