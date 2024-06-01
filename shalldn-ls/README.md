@@ -55,5 +55,36 @@ The extension support tagging individual requirements for various tracking purpo
 
 ![tags demo](media/tags.gif)
 
+### Coverage report
+
+Press F1 key and start typing "Shalldn" into command input, then select "Create coverage report" command. Below is an example report created from the Shalldn project requirements. Note that the report is interactive and allows drilling down the namespace by clicking on expanding triangle.
+<div style="max-height:20em; overflow-y:auto;border:1px solid black;padding:1em">
+<style>ul {list-style-type:none;}</style>
+		<h1>Requirements coverage report</h1>
+		<h3>Workspace: shalldn (main)</h3>
+		<h6>Created on 6/1/2024, 1:47:46 PM</h6>
+	<details><summary><b>Analyzer</b>: 100% implemented (20/20, 1.4 average per requirement)  45% tested (9/20, 1.8 average per requirement)</summary><ul><li><b>Analyzer.ERR</b>: 100% implemented (4/4, 1.5 average per requirement)  75% tested (3/4, 1.3 average per requirement)<br></li><li><b>Analyzer.TEST</b>: 100% implemented (4/4, 1.3 average per requirement)  100% tested (4/4, 2.3 average per requirement)<br></li></ul></details><details><summary><b>Editor</b>: 91.7% implemented (22/24, 1.4 average per requirement)  58.3% tested (14/24, 1.5 average per requirement)</summary><ul><li><b>Editor.CMPL</b>: 100% implemented (8/8, 1.3 average per requirement)  100% tested (8/8, 1.3 average per requirement)<br></li><li><b>Editor.ERR</b>: 100% implemented (3/3, 1.7 average per requirement)  33.3% tested (1/3, 1 average per requirement)<br></li><li><b>Editor.INFO</b>: 100% implemented (2/2, 1 average per requirement)  100% tested (2/2, 3 average per requirement)<br></li><li><b>Editor.NAV</b>: 100% implemented (4/4, 1.3 average per requirement)  0% tested (0/4)<br></li></ul></details><details><summary><b>Parser</b>: 100% implemented (24/24, 1 average per requirement)  37.5% tested (9/24, 1.4 average per requirement)</summary><ul><li><b>Parser.ERR</b>: 100% implemented (9/9, 1 average per requirement)  22.2% tested (2/9, 2.5 average per requirement)<br></li><li><b>Parser.IMPLMNT</b>: 100% implemented (3/3, 1 average per requirement)  66.7% tested (2/3, 1 average per requirement)<br></li></ul></details><b>Unscoped requirements</b>: 100% implemented (3/3, 1 average per requirement)  0% tested (0/3)<br>
+</div>
+
 ## Complete example
 In order to test all available features of the extension you can download the [source code of Shalldn project from GitHub](https://github.com/vldmr-bus/shalldn), which contains a set of Shalldn specification traceable to source code of the extension.
+
+## List of commands available through command palette
+
+Press F1 key to open command palette. Start typing word shalldn to filter available commands.
+
+### Create coverage report
+
+Generate HTML file with coverage report for current project (see [example](#coverage-report)).
+
+### Export project as HTML files collection
+
+Generate collection of static HTML files with rendered markdown and cross referencing of requirements, suitable for sharing the project without needing to have VS code with the extension installed.
+
+### Toggle showing errors as warnings
+
+Allows to demote shalldn errors to warning as having errors might interfere with launching the project for debugging in some languages.
+
+## Toggle warnings for requirements without tests in this file
+
+Normally requirements without tests are not highlighted. This command allows discovering such requirements in active file.
