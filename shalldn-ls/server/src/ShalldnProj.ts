@@ -465,48 +465,39 @@ export default class ShalldnProj {
 		return def;
 	}
 
-	cleanFileData(fileData:FileData|undefined) {
-		if (!fileData)
-			return;
-		fileData.RqDefs.forEach(def => {
-			let defs = this.RqDefs.get(def.id);
-			if (!defs)
-				return;
-			let newdefs = defs.filter(d => d.uri != def.uri);
-			this.RqDefs.set(def.id, newdefs);
+	cleanFileData(uri:string) {
+		this.RqDefs.forEach((defs, id) => {
+			let newdefs = defs.filter(d => d.uri != uri);
+			if (newdefs.length == 0)
+				this.RqDefs.delete(id);
+			else
+				this.RqDefs.set(id, newdefs);
 		});
-		fileData.RqRefs.forEach(ref => {
-			let refs = this.RqRefs.get(ref.id);
-			if (!refs)
-				return;
-			let newrefs = refs.filter(d => d.uri != ref.uri);
-			this.RqRefs.set(ref.id, newrefs);
+		this.RqRefs.forEach((refs, id) => {
+			let newrefs = refs.filter(d => d.uri != uri);
+			if (newrefs.length == 0)
+				this.RqRefs.delete(id);
+			else
+				this.RqRefs.set(id, newrefs);
 		});
-		fileData.Xrefs.forEach(ref => {
-			let refs = this.Xrefs.get(ref.id);
-			if (!refs)
-				return;
-			let newrefs = refs.filter(d => d.uri != ref.uri);
-			this.Xrefs.set(ref.id, newrefs);
+		this.Xrefs.forEach((refs, id) => {
+			let newrefs = refs.filter(d => d.uri != uri);
+			if (newrefs.length == 0)
+				this.Xrefs.delete(id);
+			else
+				this.Xrefs.set(id, newrefs);
 		});
-		(fileData?.TermDefs || []).forEach(def => {
-			let subj = def.subj;
-			if (subj.search(/[a-z]/) >= 0)
-				subj = subj.toLowerCase();
-			let defs = this.TermDefs.get(subj);
-			if (!defs)
-				return;
-			let newdefs = defs.filter(d => d.uri != def.uri);
-			this.TermDefs.set(subj, newdefs);
+		this.TermDefs.forEach((defs, subj) => {
+			let newdefs = defs.filter(d => d.uri != uri);
+			if (newdefs.length == 0)
+				this.TermDefs.delete(subj);
+			else
+				this.TermDefs.set(subj, newdefs);
 		});
-
 	}
 
 	public remove(uri:string) {
-		let fileData = this.Files.get(uri);
-		if (!fileData)
-			return;
-		this.cleanFileData(fileData);
+		this.cleanFileData(uri);
 		this.Files.delete(uri);
 	}
 
@@ -578,7 +569,7 @@ export default class ShalldnProj {
 	analyzeRqFile(uri:string, text:string) {
 		let fileData = this.Files.get(uri);
 		let firstPass = !fileData;
-		this.cleanFileData(fileData);
+		this.cleanFileData(uri);
 		fileData = new FileData();
 		this.Files.set(uri,fileData);
 
@@ -675,7 +666,7 @@ export default class ShalldnProj {
 	analyzeNonRqFile(uri:string, text:string) {
 		let fileData = this.Files.get(uri);
 		let firstPass = !fileData;
-		this.cleanFileData(fileData);
+		this.cleanFileData(uri);
 		fileData = new FileData();
 		this.Files.set(uri, fileData);
 
