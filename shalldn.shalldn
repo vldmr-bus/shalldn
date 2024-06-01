@@ -11,6 +11,3 @@ The Shalldn analyzer uses the Shalldn parser to process collection of text files
 
 ## The *Shalldn editor*
 The Shalldn editor is the Visual Studio Code language server for Shalldn language that provides IntelliSense features aiding in editing ".shalldn" files such as syntax highlight, problems indicators, navigation to definitions and dependencies. The editor uses Shalldn parser and Shalldn analyzer as a source of data.
-
-## The *Shalldn implementor*
-The Shalldn implementor is a tool that creates and helps in maintaining a project (collection of files in programming, hardware or other formal language) that implements a set of Shalldn requirements. The tool can produce traceability and coverage reports for implementing projects and can automatically fix gaps in implementation by creating new component stubs or updating existing project files.

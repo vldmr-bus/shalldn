@@ -3,7 +3,7 @@
 	"typescript.tsc.autoDetect": "off",
 	"typescript.preferences.quoteStyle": "single",
 	"editor.codeActionsOnSave": {
-		"source.fixAll.eslint": true
+		"source.fixAll.eslint": "explicit"
 	},
 	"terminal.integrated.defaultProfile.windows": "PowerShell",
 	"cucumberautocomplete.steps": [
@@ -23,5 +23,8 @@
 		"shalldn": {
 			"parser": "markdown"
 		}
-	}
+	},
+	"cSpell.words": [
+		"Shalldn"
+	]
 }

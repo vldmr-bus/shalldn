@@ -24,7 +24,7 @@ Feature: Definitions
 	The third term in second definitions section.
 	"""
 
-	Scenario: Parsers.INLN_DEF_DRCT
+	Scenario: Parser.INLN_DEF_DRCT
 	Given the test file named "test-definitions.shalldn" is opened
 	When list of definitions is obtained for the word "DID" in following text:
 	"""
@@ -35,7 +35,7 @@ Feature: Definitions
 	Direct Inline Definition
 	"""
 
-	Scenario: Parsers.INLN_DEF_REV
+	Scenario: Parser.INLN_DEF_REV
 	Given the test file named "test-definitions.shalldn" is opened
 	When list of definitions is obtained for the word "RID" in following text:
 	"""
@@ -46,7 +46,7 @@ Feature: Definitions
 	Reverse Inline Definition
 	"""
 
-	Scenario: Parsers.INLN_DEF_IMP
+	Scenario: Parser.INLN_DEF_IMP
 	Given the test file named "test-definitions.shalldn" is opened
 	When list of definitions is obtained for the word "IIB" in following text:
 	"""
@@ -57,7 +57,7 @@ Feature: Definitions
 	Here is an example of Implicit Inline Definition *IIB* *(n.b.)*.
 	"""
 
-	Scenario: Analyzer.ERR_DEFS_DUPS
+	Scenario: Analyzer.ERR.DEFS_DUPS
 	Given the test file named "test-definitions.shalldn" is opened
 	Then editor problems shall include error for the words "Term 2" with the text:
 	"""

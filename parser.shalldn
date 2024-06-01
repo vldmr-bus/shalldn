@@ -14,19 +14,19 @@ The parser **shall** recognize a requirement as *tagged requirement* *(n.b.)* wh
 **Parser.TAGGED_VALUE_RQ**
 The parser **shall** ignore all text between colon character and end of line when the text immediately follows a *tag* of a requirement.
 
-**Parser.ERR_No_DOC_Subject**  
+**Parser.ERR.No_DOC_Subject**  
 The parser **shall** indicate error condition when the first line in the document file does not contain a single italicized group of words.
 
-**Parser.ERR_No_RQ_ID**  
+**Parser.ERR.No_RQ_ID**  
 The parser **shall** indicate error condition when a sentence containing document subject followed by *separately bolded* word "shall" is not preceded by a *separately bolded* *identifier*.
 
-**Parser.ERR_DUP_RQ_ID**  
+**Parser.ERR.DUP_RQ_ID**  
 The parser **shall** indicate error condition when the same *separately bolded* *identifier* is preceding multiple requirements.
 
-**Parser.ERR_NO_SUBJ**  
+**Parser.ERR.NO_SUBJ**  
 The parser **shall** indicate error condition when a sentence preceded by a *separately bolded* *identifier* contains a *separately bolded* word "shall" that is not following the document subject.
 
-**Parser.ERR_DUP_SHALL**  
+**Parser.ERR.DUP_SHALL**  
 The parser **shall** indicate error condition when a sentence recognized as a requirement contains multiple *separately bolded* word "shall" not included in quotation marks.
 
 ## Informal specifications
@@ -34,32 +34,32 @@ The parser **shall** indicate error condition when a sentence recognized as a re
 The parser **shall** recognize the only italicized group of words in any heading as an *identifier* of informal requirement.
 
 
-**Parser.ERR_HDNG_MULT_ITLC**
+**Parser.ERR.HDNG_MULT_ITLC**
 The parser **shall** indicate error condition when a heading contain multiple italicized group of words.
 
 ## Justification of requirements
 **Parser.IMPLMNT**  
 The parser **shall** recognize an unordered list item as a implementation clause when its text is the word "Implements" immediately followed by a bolded phrase or a sequence of comma separated list of *separately bolded* *identifier*s.
 
-**Parser.IMPLMNT_GRP**  
+**Parser.IMPLMNT.GRP**  
 The parser **shall** recognize an *implementation clause* as a *group implementation clause* *(n.b.)* when it belongs to a list immediately following a title or heading.
 
-**Parser.IMPLMNT_INDVDL**  
+**Parser.IMPLMNT.INDVDL**  
 The parser **shall** recognize an *implementation clause* as an *individual implementation clause* *(n.b.)* when it belongs to a list immediately following a requirement.
 
-**Parser.ERR_IMPLMNT**
+**Parser.ERR.IMPLMNT**
 The parser **shall** indicate error condition if a recognized *implementation clause* is neither group nor individual *implementation clause*.
 
 **Parser.RTNL**  
 The parser **shall** recognize an unordered list item as a *rationale clause* *(n.b.)* for a requirement when its text starts with "Rationale:" and is a part of an unordered list immediately following the requirement.
 
-**Parser.ERR_NO_JSTFCTN**  
+**Parser.ERR.NO_JSTFCTN**  
 The parser **shall** indicate error condition when a requirement that is not within a section with a *group implementation clause* and is not followed by unordered list that includes either *individual implementation clause* or *rationale clause*.
 
 **Parser.WARN_RTNL**  
 The parser **shall** indicate warning condition when a requirement that is not within a section with a group *group implementation clause* and is not followed by unordered list that includes *rationale clause* but not an *individual implementation clause*.
 
-**Parser.ERR_WORDS**  
+**Parser.ERR.WORDS**  
 The parser **shall** indicate error condition when a requirement text contain one of the words listed below not enclosed in quotation marks:
 * "TBD";
 * "TODO";
@@ -77,13 +77,13 @@ The parser **shall** a text fragment enclosed in parenthesis starting with the w
 The parser **shall** recognize a document section as collection of term definitions when the heading of the section is "Definitions", with each subsection representing a single term definition where the subsection is the subject of definition and the text of subsection is the body of the definition.
 
 ## Inline term definition
-**Parsers.INLN_DEF_DRCT**  
+**Parser.INLN_DEF_DRCT**  
 The parser **shall** recognize a group of words as a *direct inline definition* *(n.b.)* when it is composed of an italicized group of words immediately followed by a group of words starting with abbreviation "i.e." and enclosed in *separately italicized* *(i.e. surrounded by italic markdown immediately on both sides)* parenthesis where the first group is the *subject of direct inline definition* *(n.b.)* and the second group excluding "i.e." the *body of direct inline definition* *(n.b.)*.
 
-**Parsers.INLN_DEF_REV**  
+**Parser.INLN_DEF_REV**  
 The parser **shall** recognize a group of words as a *reverse inline definition* *(n.b.)* when it is composed of an italicized group of words immediately followed by a group of words enclosed in *separately italicized* parenthesis where the first group is the *body of reverse inline definition* *(n.b.)* and the second group is the *subject of reverse inline definition* *(n.b.)*.
 
-**Parsers.INLN_DEF_IMP**  
+**Parser.INLN_DEF_IMP**  
 The parser **shall** recognize a sentence as an *implicit inline definition* *(n.b.)* when it contains an italicized group of words followed by an enclosed in a *separately italicized* parenthesis abbreviation "n.b.", where this group of words is the *subject of implicit inline definition* *(n.b.)* and the whole sentence is the *body of implicit inline definition* *(n.b.)*.
 
 

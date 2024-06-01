@@ -1,6 +1,7 @@
 import ShalldnRqRef, { RefKind } from './model/ShalldnRqRef';
 
 import * as path from 'path';
+import {execSync} from 'child_process';
 import * as fs from 'fs';
 import * as rx from 'rxjs';
 import { marked } from "marked";
@@ -64,7 +65,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			def.tags = [...new Set<string>(tags.map(t=>t._id.text||'Invalid tag'))];
 		try {
 			this.proj.addRequirement(def);
-			//$$Implements Parser.ERR_NO_SUBJ
+			//$$Implements Parser.ERR.NO_SUBJ
 			let pre = this.getText(ctx._pre);
 			if (this.subject && !pre.trim().endsWith(this.subject))
 				this.proj.addDiagnostic(
@@ -93,7 +94,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 					))
 				break;
 			}
-			// $$Implements Parser.ERR_NO_JSTFCTN
+			// $$Implements Parser.ERR.NO_JSTFCTN
 			this.proj.addDiagnostic(this.uri,
 				Diagnostics.error(
 					`Requirement ${id} does not have any justification`,
@@ -108,12 +109,12 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	}
 	
 	enterImplmnt(ctx: ImplmntContext) {
-		// $$Implements Parser.IMPLMNT_INDVDL
+		// $$Implements Parser.IMPLMNT.INDVDL
 		let parentRq = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_requirement) ? <RequirementContext>ctx.parent.parent:undefined;
-		// $$Implements Parser.IMPLMNT_GRP
+		// $$Implements Parser.IMPLMNT.GRP
 		let parentTitle = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_title) ? <TitleContext>ctx.parent.parent : undefined;
 		let parentHeading:HeadingContext|undefined = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_heading) ? <HeadingContext>ctx.parent.parent : undefined;
-		// $$Implements Parser.ERR_IMPLMNT
+		// $$Implements Parser.ERR.IMPLMNT
 		if (!(parentRq || parentHeading || parentTitle)) {
 			this.proj.addDiagnostic(
 				this.uri,
@@ -153,7 +154,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		this.proj.addXrefs(this.uri, ctx, ids);
 	}
 
-	// $$Implements Parsers.INLN_DEF_DRCT
+	// $$Implements Parser.INLN_DEF_DRCT
 	enterDef_drct(ctx: Def_drctContext) {
 		let def: ShalldnTermDef = {
 			uri: this.uri,
@@ -164,7 +165,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		this.proj.addTerm(def);
 	}
 
-	// $$Implements Parsers.INLN_DEF_REV
+	// $$Implements Parser.INLN_DEF_REV
 	enterDef_rev(ctx: Def_revContext) {
 		let body = ctx._body.plain_phrase();
 		if (!body) {
@@ -185,7 +186,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		this.proj.addTerm(def);
 	}
 
-	// $$Implements Parsers.INLN_DEF_IMP
+	// $$Implements Parser.INLN_DEF_IMP
 	enterNota_bene(ctx: Nota_beneContext) {
 		let subj = ctx.italiced_phrase().plain_phrase();
 		if (!subj) {
@@ -273,7 +274,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			});
 		});
 
-		// $$Implements Parser.ERR_HDNG_MULT_ITLC
+		// $$Implements Parser.ERR.HDNG_MULT_ITLC
 		if (defs.length>1)
 			this.proj.addDiagnostic(
 				this.uri,
@@ -378,7 +379,7 @@ export default class ShalldnProj {
 			defs=[];
 			this.RqDefs.set(def.id,defs)
 		}
-		// $$Implements Parser.ERR_DUP_RQ_ID, Analyzer.ERR_DUP_RQ_ID, Editor.ERR_MULT_DEF
+		// $$Implements Parser.ERR.DUP_RQ_ID, Analyzer.ERR.DUP_RQ_ID, Editor.ERR.MULT_DEF
 		let multiple = defs.length>0;
 		defs.push(def);
 		if (multiple) {
@@ -454,7 +455,7 @@ export default class ShalldnProj {
 		let multiple = defs.length > 0;
 		defs.push(def);
 
-		// $$Implements Analyzer.ERR_DEFS_DUPS
+		// $$Implements Analyzer.ERR.DEFS_DUPS
 		if (multiple) {
 			this.addDiagnostic(
 				def.uri,
@@ -510,7 +511,7 @@ export default class ShalldnProj {
 	}
 
 	checkRefsTargets(fileData:FileData, uri:string) {
-		// $$Implements Analyzer.ERR_NOIMPL_TGT, Analyzer.TESTS_NO_TGT
+		// $$Implements Analyzer.ERR.NOIMPL_TGT, Analyzer.TEST.NO_TGT
 		fileData.RqRefs.forEach(ref => {
 			let defs = this.RqDefs.get(ref.id);
 			if (!defs || defs.length==0) {
@@ -520,7 +521,7 @@ export default class ShalldnProj {
 				);
 			}
 		});
-		// $$Implements Analyzer.ERR_XREF_TGT
+		// $$Implements Analyzer.ERR.XREF_TGT
 		fileData.Xrefs.forEach(ref => {
 			let defs = this.RqDefs.get(ref.id);
 			if (!defs || defs.length==0) {
@@ -570,7 +571,7 @@ export default class ShalldnProj {
 		else
 			this.analyzeNonRqFile(uri,text);
 
-		// $$Implements Editor.INFO_NOIMPL, Editor.INFO_NOIMPL_DOC, Editor.ERR_NO_IMPLMNT_TGT, Editor.ERR_NO_IMPLMNT_TGT
+		// $$Implements Editor.INFO.NOIMPL, Editor.INFO.NOIMPL_DOC, Editor.ERR.NO_IMPLMNT_TGT
 		this.connection?.sendDiagnostics({ uri, diagnostics:this.getDiagnostics(uri) });
 	}
 
@@ -592,7 +593,7 @@ export default class ShalldnProj {
 		let dctx = parser.document();
 		ParseTreeWalker.DEFAULT.walk(analyzer as ParseTreeListener, dctx);
 
-		//$$Implements Parser.ERR_No_DOC_Subject
+		//$$Implements Parser.ERR.No_DOC_Subject
 		if (!analyzer.subject)
 			this.addDiagnostic(
 				uri,
@@ -623,7 +624,7 @@ export default class ShalldnProj {
 				if (this.FileWithTestWarn.has(uri)) 
 					this.addTestWarnings(uri,fileData);
 
-				// $$Implements Parser.ERR_WORDS
+				// $$Implements Parser.ERR.WORDS
 				let regex=/(?<=[^'"])\b(TBD|TODO|FIXME)\b(?=[^'"])/g;
 				let match: RegExpExecArray | null;
 				let lines = text.replace(/\r/g, '').split('\n');
@@ -640,7 +641,7 @@ export default class ShalldnProj {
 				}
 			}
 
-			// $$Implements Analyzer.ERR_NOIMPL_TGT
+			// $$Implements Analyzer.ERR.NOIMPL_TGT
 			this.checkRefsTargets(fileData, uri);
 		}
 	}
@@ -681,7 +682,7 @@ export default class ShalldnProj {
 		let lines = text.split('\n');
 		for (let l=0;l<lines.length; l++) {
 			let line = lines[l];
-			// $$Implements Analyzer.CMNT_IMPLMNT, Analyzer.TEST_CLAUSE
+			// $$Implements Analyzer.CMNT_IMPLMNT, Analyzer.TEST.CLAUSE
 			let m = line.trim().match(/.*\$\$(?:Implements|Tests)\s+([\w\.]+(?:\s*,\s*[\w\.]+\s*)*)/);
 			if (m) {
 				let csp = line.search(/\$\$(Implements|Tests)/);
@@ -697,7 +698,7 @@ export default class ShalldnProj {
 			}
 			if (path.extname(uri) != ".feature")
 				continue;
-			// $$Implements Analyzer.TEST_GHERKIN
+			// $$Implements Analyzer.TEST.GHERKIN
 			m = line.trim().match(/^Scenario:\s*([\w_]+\.[\w_\.]+)\b/);
 			if (m) {
 				let id = m[1];
@@ -710,7 +711,7 @@ export default class ShalldnProj {
 			
 		}
 
-		if (!firstPass) // $$Implements Analyzer.ERR_NOIMPL_TGT, Analyzer.TESTS_NO_TGT
+		if (!firstPass) // $$Implements Analyzer.ERR.NOIMPL_TGT, Analyzer.TEST.NO_TGT
 			this.checkRefsTargets(fileData,uri);
 
 	}
@@ -813,10 +814,10 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		return this.Xrefs.get(id) || [];
 	}
 
-	// $$Implements Analyzer.IMPLNT, Analyzer.TESTS
+	// $$Implements Analyzer.IMPLNT, Analyzer.TEST.LIST
 	public findReferenceLocations(id: string): Location[] {
 		let defs = this.RqRefs.get(id) || [];
-		// $$Implements Editor.NAV_XREF
+		// $$Implements Editor.NAV.XREF
 		let xrefs = this.Xrefs.get(id);
 		if (xrefs)
 			defs = defs.concat(xrefs);
@@ -849,7 +850,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		return res;
 	}
 
-	// $$Implements Editor.ERR_DEMOTE
+	// $$Implements Editor.ERR.DEMOTE
 	public async toggleErrWarn() {
 		this.showAllAsWarnings = !this.showAllAsWarnings;
 		for (const uri of this.diagnostics.keys()) {
@@ -1069,5 +1070,80 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		let ixp = path.resolve(rootp, 'index.html');
 		fs.writeFileSync(ixp, idx);
 		progress(ixp,100);
+	}
+
+	coverageHtml(nsNode:string|Trees.TreeNode<string>):{html:string,implementedRq:number,implCount:number,testetdRq:number, testCount:number} {
+		let result = { html: "", implementedRq: 0, implCount: 0, testetdRq: 0, testCount: 0 };
+		if (typeof nsNode == 'string') {
+			let rqs = this.RqRefs.get(nsNode);
+			result.implCount = rqs?.reduce((a, r) => a + (r.kind == RefKind.Implementation ? 1 : 0), 0) || 0;
+			result.implementedRq = result.implCount>0?1:0;
+			result.testCount = rqs?.reduce((a, r) => a + (r.kind == RefKind.Test ? 1 : 0), 0) || 0;
+			result.testetdRq = result.testCount>0?1:0;
+			return result;
+		} else {
+			result = nsNode.children.reduce((v,n) => {
+				let r = this.coverageHtml(n);
+				if (r.html)
+					v.html += `<li>${r.html}</li>`;
+				v.implementedRq += r.implementedRq;
+				v.implCount += r.implCount;
+				v.testetdRq += r.testetdRq;
+				v.testCount += r.testCount;
+				return v;
+			}, result);
+			let pctImpl = Math.round(result.implementedRq / nsNode.leafCount! * 1000)/10;
+			let implAvg = result.implementedRq?Math.round(result.implCount / result.implementedRq * 10) / 10:0;
+			let implAvgTxt = implAvg?`, ${implAvg} average per requirement`:"";
+			let pctTest = Math.round(result.testetdRq / nsNode.leafCount! * 1000) / 10;
+			let testAvg = result.testetdRq?Math.round(result.testCount / result.testetdRq * 10) / 10:0;
+			let testAvgTxt = testAvg?`, ${testAvg} average per requirement`:"";
+			let html = `<b>${nsNode.id}</b>: ${pctImpl}% implemented (${result.implementedRq}/${nsNode.leafCount!}${implAvgTxt})  ${pctTest}% tested (${result.testetdRq}/${nsNode.leafCount!}${testAvgTxt})`;
+			if (result.html)
+				html = `<details><summary>${html}</summary><ul>${result.html}</ul></details>`;
+			else
+				html += '<br>';
+			result.html = html;
+			return result;
+		}
+	}
+
+	public coverageReport(uri: string, progress: (msg: string, pct: number) => void) {
+		let tree = Trees.makeNamespaceTree(Array.from(this.RqDefs.keys()));
+		Trees.sortAndCountNamespaceTree(tree);
+		let unscoped = tree.filter(n => typeof n == 'string');
+		tree = tree.filter(n => typeof n != 'string');
+		if (unscoped.length)
+			tree.push({ id: 'Unscoped requirements', children: unscoped, leafCount: unscoped.length});
+		let ws = this.wsFolders.map(p => {
+			let d = path.basename(p)
+			try {
+				let br = execSync(`git.exe -C ${p} rev-parse --abbrev-ref HEAD`).toString().trim();
+				return `${d} (${br})`;
+			} catch (e) {
+				return d;
+			}
+		})
+		.join(', ');
+		let html = `
+<html>
+	<head>
+		<style>
+			ul {list-style-type:none;}
+		</style>
+	</head>
+	<body>
+		<h1>Requirements coverage report</h1>
+		<h3>Workspace: ${ws}</h3>
+		<h6>Created on ${new Date().toLocaleString()}</h6>
+	`;
+		tree.forEach(n => {
+			let r = this.coverageHtml(n);
+			html += r.html;
+		});
+		html += '</body></html>';
+		let p = URI.parse(uri).fsPath;
+		fs.writeFileSync(p, html);
+		progress(p, 100);
 	}
 }

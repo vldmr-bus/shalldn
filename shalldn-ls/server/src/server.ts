@@ -256,7 +256,7 @@ function idAt(tr:{text:string,range:Range},p:Position) {
 	return Util.lineFragment(tr,p.character,/.*?([\w\.]*)$/,/^([\w\.]*).*?$/s);
 }
 
-// $$Implements Editor.NAV_RQ_DEF
+// $$Implements Editor.NAV.RQ_DEF
 connection.onDefinition((params, cancellationToken) => {
 	return new Promise((resolve, reject) => {
 		const document = documents.get(params.textDocument.uri);
@@ -288,7 +288,7 @@ connection.onDefinition((params, cancellationToken) => {
 			}
 		}
 
-		// term definitions: $$Implements Analyzer.DEFS, Editor.NAV_TERM_DEF
+		// term definitions: $$Implements Analyzer.DEFS, Editor.NAV.TERM_DEF
 		id = Util.lineFragment(tr, p.character,/\*+([^*]*)$/,/^([^*]*)\*+/s);
 		if (!id)
 			id = Util.lineFragment(tr, p.character,/_+([^*_]*)$/, /^([^*_]*)_+/s);
@@ -298,7 +298,7 @@ connection.onDefinition((params, cancellationToken) => {
 	});
 });
 
-// $$Implements Editor.NAV_IMPL, Editor.NAV_TESTS, Editor.NAV_XREF
+// $$Implements Editor.NAV.IMPL, Editor.NAV.TESTS, Editor.NAV.XREF
 connection.onReferences((params)=>{
 	return new Promise((resolve, reject) => {
 		const document = documents.get(params.textDocument.uri);
@@ -364,18 +364,18 @@ connection.onCompletion(
 		const pfx = text.substring(0, p.character);
 		const isrq = isRqDoc(document);
 
-		// $$Implements Editor.CMPL_SUBJ
+		// $$Implements Editor.CMPL.SUBJ
 		const subj = isrq && project.getSubject(_textDocumentPosition.textDocument.uri) || "";
 		let c = fragmentCompletion(pfx,subj,p);
 		if (c)
 			res.push(c);
 
-		// $$Implements Editor.CMPL_KW_NREQ
+		// $$Implements Editor.CMPL.KW_NREQ
 		c = !isrq && fragmentCompletion(pfx, "$$Implements", p, 2) || null;
 		if (c)
 			res.push(c);
 
-		// $$Implements Editor.CMPL_KW_REQ
+		// $$Implements Editor.CMPL.KW_REQ
 		c = isrq && fragmentCompletion(pfx, "* Implements", p) || null;
 		if (c)
 			res.push(c);
@@ -384,7 +384,7 @@ connection.onCompletion(
 		if (c)
 			res.push(c);
 
-		// $$Implements Editor.CMPL_IMPL_NREQ
+		// $$Implements Editor.CMPL.IMPL_NREQ
 		let m = !isrq && pfx.match(/\$\$Implements.+?\b(\w[\w.]*)$/) || null;
 		if (m)
 			project.getIdsByPfx(m[1]).forEach(id=>{
@@ -392,12 +392,12 @@ connection.onCompletion(
 					label: id,
 					kind: CompletionItemKind.Keyword,
 					textEdit: TextEdit.insert(p,id.substring(m![1].length)),
-					// $$Implements Editor.CMPL_NS_ORD
+					// $$Implements Editor.CMPL.NS_ORD
 					sortText: id.endsWith('.')?'0000000000'.substring(id.replace(/[^.]+/g, '').length)+id:id
 				})
 			});
 
-		// $$Implements Editor.CMPL_IMPL_REQ
+		// $$Implements Editor.CMPL.IMPL_REQ
 		m = isrq && pfx.match(/^\s*\*\s+Implements\s.*\*\*(\w[\w.]*)$/) || null;
 		if (m)
 			project.getIdsByPfx(m[1]).forEach(id => {
@@ -405,12 +405,12 @@ connection.onCompletion(
 					label: id,
 					kind: CompletionItemKind.Keyword,
 					textEdit: TextEdit.insert(p, id.substring(m![1].length)+'**'),
-					// $$Implements Editor.CMPL_NS_ORD
+					// $$Implements Editor.CMPL.NS_ORD
 					sortText: id.endsWith('.') ? '0000000000'.substring(id.replace(/[^.]+/g, '').length) + id : id
 				});
 			});
 		
-		// $$Implements Editor.CMPL_ID_REQ
+		// $$Implements Editor.CMPL.ID_REQ
 		m = isrq && pfx.match(/^\s*\*\*(\w[\w.]*)$/) || null;
 		if (m)
 			project.getIdsByPfxForFile(m[1], document.uri).forEach(id=>{
@@ -418,12 +418,12 @@ connection.onCompletion(
 					label: id,
 					kind: CompletionItemKind.Keyword,
 					textEdit: TextEdit.insert(p,id.substring(m![1].length)),
-					// $$Implements Editor.CMPL_NS_ORD
+					// $$Implements Editor.CMPL.NS_ORD
 					sortText: id.endsWith('.') ? '0000000000'.substring(id.replace(/[^.]+/g, '').length) + id : id
 				});
 			});
 
-		// $$Implements Editor.CMPL_DEFS
+		// $$Implements Editor.CMPL.DEFS
 		m = isrq && pfx.match(/[^*]\*(\w[^*]*)$/) || null;
 		if (m)
 			project.getDefsByPfx(m[1]).forEach(t => {
@@ -512,7 +512,7 @@ connection.onRequest(getDefinitionRequest, (id) => {
 	return defs.length?defs[0]:undefined;
 });
 
-// $$Implements Editor.ERR_DEMOTE
+// $$Implements Editor.ERR.DEMOTE
 var toggleErrWarn: RequestType<boolean, any, any> = new RequestType("toggleErrWarn");
 connection.onRequest(toggleErrWarn, async () => {
 	await project.toggleErrWarn();
@@ -535,6 +535,19 @@ connection.onRequest(exportHtml, data => {
 		});
 	} catch (ex) {
 		connection.sendNotification("exportHtml/progress", { message: ex, increment:-1 });
+	}
+});
+
+let coverageReport: RequestType<{
+	uri: string
+}, any, any> = new RequestType("coverageReport");
+connection.onRequest(coverageReport, data => {
+	try {
+		project.coverageReport(data.uri, (message, increment) => {
+			connection.sendNotification("coverageReport/progress", { message, increment });
+		});
+	} catch (ex) {
+		connection.sendNotification("coverageReport/progress", { message: ex, increment: -1 });
 	}
 });
 

@@ -51,6 +51,11 @@
 				"category": "Shalldn"
 			},
 			{
+				"command": "shalldn.coverageReport",
+				"title": "Create coverage report",
+				"category": "Shalldn"
+			},
+			{
 				"command": "shalldn.dict.reveal",
 				"title": "Term definition",
 				"icon": "$(symbol-reference)"

@@ -3,7 +3,7 @@ Feature: Editor
     Tests for the Shalldn editor requirements
 
     @discard_changes
-    Scenario: Editor.INFO_NOIMPL with typing
+    Scenario: Editor.INFO.NOIMPL with typing
     # Typing in new requirement with unique ID generates "Not implemented" error
     Given the test file named "tests.shalldn" is opened
     When the text below is appended to the end of the file
@@ -16,7 +16,7 @@ Feature: Editor
     Requirement {that_id} does not have implementation
     """
 
-    Scenario: Editor.INFO_NOIMPL with existing file
+    Scenario: Editor.INFO.NOIMPL with existing file
     # Existing file having requirement without implementation generates "Not implemented" error
     Given the test file named "tests.shalldn" with requirement id "Test.Editor.INFO_NOIMPL"
     Then editor problems shall include info with the text:
@@ -24,7 +24,7 @@ Feature: Editor
     Requirement Test.Editor.INFO_NOIMPL does not have implementation
     """
 
-    Scenario: Editor.INFO_NOIMPL_DOC with existing file
+    Scenario: Editor.INFO.NOIMPL_DOC with existing file
     # Existing file having requirement without implementation generates "Not implemented" error
     Given the test file named "tests.shalldn" is opened
     Then editor problems shall not include a problem with the text:
@@ -33,7 +33,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.ERR_NO_IMPLMNT_TGT with typing
+    Scenario: Editor.ERR.NO_IMPLMNT_TGT with typing
     # Typing in *implementation clause* for unique ID generates "Non existent requirement" error
     Given the test file named "tests.shalldn" is opened
     When the text below is appended to the end of the file
@@ -46,7 +46,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.INFO_NOIMPL with typing in new file
+    Scenario: Editor.INFO.NOIMPL with typing in new file
     Given a new file with name "{unique_filename}.shalldn" is created
     When the text below is appended to the end of the file
     """
@@ -60,7 +60,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.INFO_NOIMPL_DOC with typing in new file
+    Scenario: Editor.INFO.NOIMPL_DOC with typing in new file
     Given a new file with name "{unique_filename}.shalldn" is created
     When the text below is appended to the end of the file
     """
@@ -73,7 +73,7 @@ Feature: Editor
     No requirement in the document has implementation
     """
 
-    Scenario: Editor.INFO_NOIMPL_DOC with existing file file
+    Scenario: Editor.INFO.NOIMPL_DOC with existing file file
     Given the test file named "lower-level.shalldn" is opened
     Then editor problems shall include info with the text:
     """
@@ -97,7 +97,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.CMPL_SUBJ
+    Scenario: Editor.CMPL.SUBJ
     Given the test file named "lower-level.shalldn" is opened
     When the text below is appended to the end of the file
     """
@@ -110,7 +110,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.CMPL_KW_REQ Implements
+    Scenario: Editor.CMPL.KW_REQ Implements
     Given the test file named "lower-level.shalldn" is opened
     When the text below is appended to the end of the file
     """
@@ -123,7 +123,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.CMPL_KW_REQ shall
+    Scenario: Editor.CMPL.KW_REQ shall
     Given the test file named "lower-level.shalldn" is opened
     When the text below is appended to the end of the file
     """
@@ -136,7 +136,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.CMPL_KW_NREQ
+    Scenario: Editor.CMPL.KW_NREQ
     Given the test file named "non-requirement.txt" is opened
     When the text below is appended to the end of the file
     """
@@ -149,7 +149,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.CMPL_IMPL_NREQ
+    Scenario: Editor.CMPL.IMPL_NREQ
     Given the test file named "non-requirement.txt" is opened
     When the text below is appended to the end of the file
     """
@@ -166,7 +166,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.CMPL_IMPL_REQ
+    Scenario: Editor.CMPL.IMPL_REQ
     Given the test file named "lower-level.shalldn" is opened
     When the text below is appended to the end of the file
     """
@@ -183,7 +183,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.CMPL_ID_REQ same file
+    Scenario: Editor.CMPL.ID_REQ same file
     Given the test file named "tests.shalldn" is opened
     When the text below is appended to the end of the file
     """
@@ -201,7 +201,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.CMPL_ID_REQ for other file
+    Scenario: Editor.CMPL.ID_REQ for other file
     Given the test file named "lower-level.shalldn" is opened
     When the text below is appended to the end of the file
     """
@@ -219,7 +219,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.CMPL_NS_ORD
+    Scenario: Editor.CMPL.NS_ORD
         Given the test file named "tests.shalldn" is opened
     When the text below is appended to the end of the file
     """
@@ -237,7 +237,7 @@ Feature: Editor
     """
 
     @discard_changes
-    Scenario: Editor.CMPL_DEFS
+    Scenario: Editor.CMPL.DEFS
         Given the test file named "lower-level.shalldn" is opened
     When the text below is appended to the end of the file
     """

@@ -18,21 +18,21 @@ Feature: Analyzer
     """
     Then the list shall contain reference from the file "non-requirement.txt" with id "Test.Analyzer.CMNT_IMPLMNT" that follows the text "$$Implements"
 
-    Scenario: Analyzer.ERR_NOIMPL_TGT for requirements document
+    Scenario: Analyzer.ERR.NOIMPL_TGT for requirements document
     Given the test file named "tests.shalldn" is opened
     Then editor problems shall include error with the text:
     """
     Implementation of non-existing requirement Non.Existing.Requirement
     """
 
-    Scenario: Analyzer.ERR_NOIMPL_TGT for non-requirements document
+    Scenario: Analyzer.ERR.NOIMPL_TGT for non-requirements document
     Given the test file named "non-requirement.txt" is opened
     Then editor problems shall include error with the text:
     """
     Implementation of non-existing requirement Non.Existing.Requirement
     """
 
-    Scenario: Analyzer.ERR_XREF_TGT**
+    Scenario: Analyzer.ERR.XREF_TGT**
     Given the test file named "tests.shalldn" is opened
     Then editor problems shall include error with the text:
     """
@@ -48,8 +48,8 @@ Feature: Analyzer
     """
     Then the list shall be empty
 
-    Scenario: Analyzer.TESTS with inline test clause
-    # also $$Tests Analyzer.TEST_CLAUSE
+    Scenario: Analyzer.TEST.LIST with inline test clause
+    # also $$Tests Analyzer.TEST.CLAUSE
     Given the test file named "tests.shalldn" is opened
     When list of references is obtained for the word "Analyzer" in following text:
     """
@@ -57,8 +57,8 @@ Feature: Analyzer
     """
     Then the list shall contain reference from the file "non-requirement.txt" with id "Test.Analyzer.CMNT_IMPLMNT" that follows the text "$$Tests"
 
-    Scenario: Analyzer.TESTS with gherkin scenario test clause
-    # also $$Tests Analyzer.TEST_GHERKIN
+    Scenario: Analyzer.TEST.LIST with gherkin scenario test clause
+    # also $$Tests Analyzer.TEST.GHERKIN
     Given the test file named "tests.shalldn" is opened
     When list of references is obtained for the word "Test" in following text:
     """
@@ -66,8 +66,8 @@ Feature: Analyzer
     """
     Then the list shall contain reference from the file "tests.feature" with id "Test.Parser.IMPLMNT_INDVDL" that follows the text "Scenario:"
 
-    Scenario: Analyzer.TESTS_NO_TGT with inline test clause
-    # also $$Tests Analyzer.TEST_CLAUSE
+    Scenario: Analyzer.TEST.NO_TGT with inline test clause
+    # also $$Tests Analyzer.TEST.CLAUSE
     Given the test file named "non-requirement.txt" is opened
     Then editor problems shall include error with the text:
     """
@@ -75,15 +75,15 @@ Feature: Analyzer
     """
 
 
-    Scenario: Analyzer.TESTS_NO_TGT with gherkin scenario test clause
-    # also $$Tests Analyzer.TEST_GHERKIN
+    Scenario: Analyzer.TEST.NO_TGT with gherkin scenario test clause
+    # also $$Tests Analyzer.TEST.GHERKIN
     Given the test file named "tests.feature" is opened
     Then editor problems shall include error with the text:
     """
     Test of non-existing requirement Non.Existing.Requirement
     """
 
-    Scenario: Analyzer.TEST_GHERKIN without namespace
+    Scenario: Analyzer.TEST.GHERKIN without namespace
         Given the test file named "tests.feature" is opened
     Then editor problems shall not include a problem with the text:
     """

@@ -40,7 +40,7 @@ When requested to analyze any file outside of the root directory of a project th
 **Analyzer.RQS**  
 For each *identifier* of a requirement defined in project the analyzer **shall** produce a list of text references to every requirement definition for the *identifier*.
 
-**Analyzer.ERR_DUP_RQ_ID**  
+**Analyzer.ERR.DUP_RQ_ID**  
 The analyzer **shall** indicate an error condition for every requirement with the same *identifier* as any other requirement in the project.
 
 **Analyzer.CMNT_IMPLMNT**  
@@ -55,31 +55,31 @@ The analyzer **shall** indicate indicate a problem condition of informational se
 **Analyzer.INFO_NOIMPL_DOC**  
 The analyzer **shall** indicate a problem condition of informational severity for a shalldn document that only has requirements for which there is no any *implementation clause* in the project.
 
-**Analyzer.ERR_NOIMPL_TGT**  
+**Analyzer.ERR.NOIMPL_TGT**  
 The analyzer **shall** indicate an error condition for every *implementation clause* that has an *identifier* for which there is no requirement defined in the project.
 
-**Analyzer.ERR_XREF_TGT**  
+**Analyzer.ERR.XREF_TGT**  
 The analyzer **shall** indicate an error condition for every *identifier* in a *cross-reference*  for which there is no requirement defined in the project.
 
 **Analyzer.DEFS**
 For any term definition in the project in response to query with definition subject the analyzer **shall** produce a list of text references to the matching definition body.
 
-**Analyzer.ERR_DEFS_DUPS**
+**Analyzer.ERR.DEFS_DUPS**
 The analyzer **shall** indicate an error condition for every subject of term definition for which multiple definitions exist.
 
 **Analyzer.DEFS_CASE**
 The analyzer **shall** ignore the case of definition subject in a query except when the subject is in all capital letters.
 
-**Analyzer.TEST_CLAUSE**
+**Analyzer.TEST.CLAUSE**
 In each non-requirement file included in a project the analyzer **shall** recognize a text fragment that starts with a word '$$Tests' followed by an one or more comma separated *identifier*s up to end of line as an *inline test clause* *(n.b.)*.
 
-**Analyzer.TEST_GHERKIN**
+**Analyzer.TEST.GHERKIN**
 In each file with name extension ".feature" included in a project the analyzer **shall** recognize a text line that starts with a word 'Scenario:' followed by a single *identifier* containing a *namespace* as a *gherkin scenario test clause* *(n.b.)*.
 
-**Analyzer.TESTS**  
+**Analyzer.TEST.LIST**  
 For each *identifier* of a requirement defined in the project the analyzer **shall** produce a list of text references to every *test clause* with the *identifier*.
 
-**Analyzer.TESTS_NO_TGT**  
+**Analyzer.TEST.NO_TGT**  
 The analyzer **shall** indicate an error condition for every *test clause* that has an *identifier* for which there is no requirement defined in the project.
 
 **Analyzer.MODS**  

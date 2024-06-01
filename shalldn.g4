@@ -42,7 +42,7 @@ phrase: (plain_phrase|italiced_phrase|bolded_phrase|nota_bene|def_drct|def_rev|x
 title: '#'? phrase* subject = italiced_phrase WORD* list? ;
 hashes: HASH+;
 heading: '\n'*hashes phrase list?;
-// $$Implements Parser.RQ_statement, Parser.ERR_No_RQ_ID, Parser.ERR_DUP_SHALL, Parser.TAGGED_RQ
+// $$Implements Parser.RQ_statement, Parser.ERR.No_RQ_ID, Parser.ERR.DUP_SHALL, Parser.TAGGED_RQ
 requirement: ( tag+ '\n'* )* bolded_id '\n'* pre = phrase SHALL post = phrase ('.'|':') list?;
 // $$Implements Parser.IMPLMNT
 implmnt: STAR 'Implements' ((bolded_id (',' bolded_id)*) |bolded_phrase) sentence_stop? ;

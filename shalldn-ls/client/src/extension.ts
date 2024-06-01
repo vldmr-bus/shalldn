@@ -121,7 +121,7 @@ export function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
-	// $$Implements Editor.ERR_DEMOTE
+	// $$Implements Editor.ERR.DEMOTE
 	context.subscriptions.push(
 		vscode.commands.registerCommand('shalldn.toggleErrWarn', async () => {
 			await client.sendRequest("toggleErrWarn",true);
@@ -169,6 +169,50 @@ export function activate(context: vscode.ExtensionContext) {
 						}
 					});
 					await client.sendRequest("exportHtml", {folderUri:folderUris[0].toString(), workspaceUri:wsf.uri.toString()});
+				});
+				return promise;
+			});
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('shalldn.coverageReport', async () => {
+			const uri = await vscode.window.showSaveDialog({ title: 'Create coverage report', saveLabel: "Create", filters: { 'Html': ['html'],  }, defaultUri: vscode.Uri.file('coverage.html') });
+			if (!uri) {
+				return;
+			}
+
+			let progress: vscode.Progress<{ message?: string; increment?: number }>;
+			vscode.window.withProgress({
+				location: vscode.ProgressLocation.Notification,
+				title: "Creating coverage report",
+				cancellable: true
+			}, (p, token) => {
+				token.onCancellationRequested(() => {
+					console.log("User canceled the long running operation");
+				});
+
+				p.report({ increment: 0, message: "Analyzing Shalldn project" });
+				progress = p;
+				const promise = new Promise<void>(async (resolve) => {
+					let ntfDsp = client.onNotification("coverageReport/progress", (data:{message?: string, increment?: number}) => {
+						let increment = data.increment;
+						let message = data.message;
+						if (increment == -1) {
+							ntfDsp.dispose();
+							resolve();
+							vscode.window.showErrorMessage("Shalldn: Coverage report failed --\r\n "+message);
+						} 
+						if (increment<100)
+							p.report({ increment, message});
+						else {
+							ntfDsp.dispose();
+							resolve();
+							vscode.window.showInformationMessage("Shalldn: Report created");
+							vscode.env.openExternal(URI.file(message));
+						}
+					});
+					await client.sendRequest("coverageReport", {uri:uri.toString()});
 				});
 				return promise;
 			});
