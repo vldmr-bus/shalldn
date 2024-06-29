@@ -65,6 +65,7 @@ Feature: Analyzer
     **Test.Parser.IMPLMNT_INDVDL**
     """
     Then the list shall contain reference from the file "tests.feature" with id "Test.Parser.IMPLMNT_INDVDL" that follows the text "Scenario:"
+    And the list shall contain reference from the file "tests.feature" with id "Test.Parser.IMPLMNT_INDVDL" that follows the text "Outline:"
 
     Scenario: Analyzer.TEST.NO_TGT with inline test clause
     # also $$Tests Analyzer.TEST.CLAUSE
@@ -83,9 +84,24 @@ Feature: Analyzer
     Test of non-existing requirement Non.Existing.Requirement
     """
 
+    Scenario: Analyzer.TEST.NO_TGT with gherkin scenario test clause for scenario outline
+    # also $$Tests Analyzer.TEST.GHERKIN
+    Given the test file named "tests.feature" is opened
+    Then editor problems shall include error with the text:
+    """
+    Test of non-existing requirement Non.Existing.Requirement.For_Scenario
+    """
+
     Scenario: Analyzer.TEST.GHERKIN without namespace
-        Given the test file named "tests.feature" is opened
+    Given the test file named "tests.feature" is opened
     Then editor problems shall not include a problem with the text:
     """
     Test of non-existing requirement NonExistantIdWithoutNameSpace
+    """
+
+    Scenario: Analyzer.TEST.GHERKIN without namespace for scenario outline
+    Given the test file named "tests.feature" is opened
+    Then editor problems shall not include a problem with the text:
+    """
+    Test of non-existing requirement NonExistantIdWithoutNameSpace_For_Scenario
     """

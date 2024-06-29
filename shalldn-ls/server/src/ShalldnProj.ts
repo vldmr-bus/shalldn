@@ -690,7 +690,7 @@ export default class ShalldnProj {
 			if (path.extname(uri) != ".feature")
 				continue;
 			// $$Implements Analyzer.TEST.GHERKIN
-			m = line.trim().match(/^Scenario:\s*([\w_]+\.[\w_\.]+)\b/);
+			m = line.trim().match(/^Scenario(?: Outline)?:\s*([\w_]+\.[\w_\.]+)\b/);
 			if (m) {
 				let id = m[1];
 				let sp = line.search(id);

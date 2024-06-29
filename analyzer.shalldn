@@ -74,7 +74,7 @@ The analyzer **shall** ignore the case of definition subject in a query except w
 In each non-requirement file included in a project the analyzer **shall** recognize a text fragment that starts with a word '$$Tests' followed by an one or more comma separated *identifier*s up to end of line as an *inline test clause* *(n.b.)*.
 
 **Analyzer.TEST.GHERKIN**
-In each file with name extension ".feature" included in a project the analyzer **shall** recognize a text line that starts with a word 'Scenario:' followed by a single *identifier* containing a *namespace* as a *gherkin scenario test clause* *(n.b.)*.
+In each file with name extension ".feature" included in a project the analyzer **shall** recognize a text line that starts with either 'Scenario:' or 'Scenario Outline:' followed by a single *identifier* containing a *namespace* as a *gherkin scenario test clause* *(n.b.)*.
 
 **Analyzer.TEST.LIST**  
 For each *identifier* of a requirement defined in the project the analyzer **shall** produce a list of text references to every *test clause* with the *identifier*.
