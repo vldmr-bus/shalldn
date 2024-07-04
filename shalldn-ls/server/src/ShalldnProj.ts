@@ -1102,14 +1102,35 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 	public coverageReport(uri: string, progress: (msg: string, pct: number) => void) {
 		let tree = Trees.makeNamespaceTree(Array.from(this.RqDefs.keys()));
 		Trees.sortAndCountNamespaceTree(tree);
-		let unscoped = tree.filter(n => typeof n == 'string');
+		let unscoped = tree.filter(n => typeof n == 'string') as string[];
 		tree = tree.filter(n => typeof n != 'string');
-		if (unscoped.length)
-			tree.push({ id: 'Unscoped requirements', children: unscoped, leafCount: unscoped.length});
+		if (unscoped.length) {
+			var children = new Map<string, string[]>();
+			let cnt = 0;
+			for (const n of unscoped) {
+				let rqs = this.RqDefs.get(n);
+				if (!rqs)
+					continue;
+				for (const r of rqs) {
+					let wsp = this.wsFolders.find(p => FsUtil.isInside(p, r.uri));
+					if (!wsp)
+						continue;
+					let rp = path.relative(wsp, URI.parse(r.uri).fsPath);
+					if (this.wsFolders.length > 1)
+						rp = path.join(path.basename(wsp), rp);
+					let ch = children.get(rp);
+					if (!ch)
+						children.set(rp, ch = []);
+					ch.push(n);
+					cnt++;
+				}
+			}
+			tree.push({ id: 'Unscoped requirements', children: Array.from(children.entries()).map(kvp=> { return {id:kvp[0],children:kvp[1], leafCount:kvp[1].length}}), leafCount: cnt});
+		}
 		let ws = this.wsFolders.map(p => {
 			let d = path.basename(p)
 			try {
-				let br = execSync(`git.exe -C ${p} rev-parse --abbrev-ref HEAD`).toString().trim();
+				let br = execSync(`git -C ${p} rev-parse --abbrev-ref HEAD`).toString().trim();
 				return `${d} (${br})`;
 			} catch (e) {
 				return d;
