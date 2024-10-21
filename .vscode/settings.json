@@ -25,6 +25,11 @@
 		}
 	},
 	"cSpell.words": [
-		"Shalldn"
+		"Shalldn",
+		"ФЯДОТ"
+	],
+	"cSpell.language": "en,ru",
+	"cSpell.enableFiletypes": [
+		"json"
 	]
 }

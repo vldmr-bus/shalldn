@@ -57,6 +57,7 @@ Feature: Definitions
 	Here is an example of Implicit Inline Definition *IIB* *(n.b.)*.
 	"""
 
+	@en_only
 	Scenario: Analyzer.ERR.DEFS_DUPS
 	Given the test file named "test-definitions.shalldn" is opened
 	Then editor problems shall include error for the words "Term 2" with the text:

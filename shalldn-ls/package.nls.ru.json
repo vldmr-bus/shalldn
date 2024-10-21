@@ -1,0 +1,21 @@
+
+{
+"shalldn":"ФЯДОТ",
+"shalldn.descr": "ФЯДОТ: Формальный Язык Для Описания/Определения Требований",
+"shalldn.toggleTestWarn": "Переключение предупреждений о требованиях без тестов в этом файле",
+"shalldn.toggleErrWarn": "Переключение отображения ошибок как предупреждений",
+"shalldn.exportHtml": "Экспортировать проект в виде коллекции файлов HTML",
+"shalldn.coverageReport": "Создать отчет о покрытии",
+"shalldn.dict.reveal": "Определение термина",
+"shalldn.def.reveal": "Показать",
+"shalldn.expand.all": "Раскрыть все",
+"shalldnTags.ungroup": "Показывать как список",
+"shalldnTags.group": "Показывать как дерево",
+"shalldnDictionary": "Словарь",
+"shalldnTags": "Помеченные требования",
+"shalldnDictionary.empty": "В проекте пока нет определений",
+"shalldnTags.empty": "Здесь показываются требования, предваряемые квалификаторами в виде $ТЕКСТ",
+"shalldnLanguageServer.maxNumberOfProblems": "Установка максимального количества детектируемых проблем.",
+"shalldn.config": "Настройки для языка ФЯДОТ",
+"shalldn.explorer": "Навигатор языка ФЯДОТ"
+}

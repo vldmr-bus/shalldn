@@ -83,4 +83,15 @@ export namespace Util {
 	export function escapeRegExp(s:string) {
 		return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 	}
+
+	export function commonPrefix(s1:string,s2:string) {
+		let p = (s1.length<s2.length)?s1:s2;
+		let s = (s1.length < s2.length) ? s2 : s1;
+		for (let i=0; i<p.length; i++) {
+			if (s[i]!=p[i]) {
+				return p.slice(0,i);
+			}
+		}
+		return p;
+	}
 }

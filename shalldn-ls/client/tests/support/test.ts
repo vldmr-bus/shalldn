@@ -8,4 +8,5 @@ export default interface Test {
 	complList: vscode.CompletionList|undefined;
 	thatCommand: string|undefined;
 	wsEdit: vscode.WorkspaceEdit|undefined;
+	skipped?: boolean;
 }

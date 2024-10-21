@@ -1,4 +1,5 @@
 import { Diagnostic, DiagnosticRelatedInformation, DiagnosticSeverity, DocumentUri, Position, Range, uinteger } from 'vscode-languageserver-types';
+import * as l10n from "@vscode/l10n";
 
 export class ShalldnDiagnostic implements Diagnostic {
 	constructor(
@@ -7,7 +8,7 @@ export class ShalldnDiagnostic implements Diagnostic {
 		public message: string
 	) { }
 	relatedInformation?: DiagnosticRelatedInformation[];
-	public get source(): string { return 'Shalldn'; }
+	public get source(): string { return l10n.t("Shalldn"); }
 	public addRelated(message: string, uri?: DocumentUri): ShalldnDiagnostic {
 		if (uri === undefined)
 			uri = "";

@@ -29,7 +29,7 @@ import {
 
 import { Diagnostics } from './Diagnostics';
 import { Util } from './util';
-import ShalldnProj, { AnalyzerPromise } from './ShalldnProj';
+import ShalldnProj, { AnalyzerPromise, dialect, dialectKeywords, Dialects, isReqUri, kws } from './ShalldnProj';
 import { URI, Utils } from 'vscode-uri';
 
 import {from, lastValueFrom, mergeMap} from 'rxjs';
@@ -37,6 +37,13 @@ import * as fs from 'fs/promises';
 import { Capabilities } from './capabilities';
 import e = require('express');
 import path = require('path');
+import * as l10n from '@vscode/l10n';
+
+if (process.env['EXTENSION_BUNDLE_PATH']) {
+	l10n.config({
+		fsPath: process.env['EXTENSION_BUNDLE_PATH']
+	});
+}
 
 var debug = /--inspect/.test(process.execArgv.join(' '))
 
@@ -168,6 +175,7 @@ function reportAnalyzingFailure(err:any) {
 }
 
 // $$Implements Analyzer.NOTIFY
+// $$Реализует СТРУКТАН.ПОСЛЕ
 let termsCache: string;
 let tagsCache:string;
 function tellClient(files:string[]) {
@@ -202,6 +210,7 @@ function docLoader(uri:string) {
 }
 
 // $$Implements Analyzer.MODS
+// $$Реализует СТРУКТАН.ИЗМЕНЕНИЯ
 async function onDidChangeContent(change: TextDocumentChangeEvent<TextDocument>) {
 	let linked = project.getLinked(change.document.uri);
 	analyzeFiles([change.document.uri])
@@ -217,6 +226,7 @@ async function onDidChangeContent(change: TextDocumentChangeEvent<TextDocument>)
 }
 
 // $$Implements Analyzer.MODS
+// $$Реализует СТРУКТАН.ИЗМЕНЕНИЯ
 connection.onDidChangeWatchedFiles(_change => {
 	let changed:string[] = [];
 	_change.changes.forEach(event=>{
@@ -248,15 +258,12 @@ connection.onDidChangeWatchedFiles(_change => {
 	)
 });
 
-function isRqDoc(doc:TextDocument):boolean {
-	return doc.languageId == 'shalldn' || doc.languageId == 'markdown' && /\.shalldn$/.test(doc.uri);
-}
-
 function idAt(tr:{text:string,range:Range},p:Position) {
-	return Util.lineFragment(tr,p.character,/.*?([\w\.]*)$/,/^([\w\.]*).*?$/s);
+	return Util.lineFragment(tr,p.character,/.*?([\wА-я.]*)$/,/^([\wА-я.]*).*?$/s);
 }
 
 // $$Implements Editor.NAV.RQ_DEF
+// $$Реализует РЕДАКТОР.НАВ.ТР
 connection.onDefinition((params, cancellationToken) => {
 	return new Promise((resolve, reject) => {
 		const document = documents.get(params.textDocument.uri);
@@ -272,33 +279,39 @@ connection.onDefinition((params, cancellationToken) => {
 		let id = idAt(tr,p);
 		if (id) {
 			let defs = project.findDefinitionLocations(id.text,id.range);
-			if (defs.length > 0 || !isRqDoc(document)) {
+			if (defs.length > 0 || !isReqUri(document.uri)) {
 				resolve(defs);
 				return;
 			}
 		}
 
+		const dlct = dialect(document.uri);
+		const dkw = dialectKeywords[dlct || 'shaldn']
+		const impRE = new RegExp(`^.*${dkw["Implements"]}\\s+\\*\\*([^*]+)$`)
 		// informal requirement definition
-		id = Util.lineFragment(tr, p.character,/^.*Implements\s+\*\*([^*]+)$/,/^([^*]*)\*\*/);
+		id = Util.lineFragment(tr, p.character,impRE,/^([^*]*)\*\*/);
 		if (id) {
 			let defs = project.findDefinitionLocations(id.text,id.range);
-			if (defs.length > 0 || !isRqDoc(document)) {
+			if (defs.length > 0 || !isReqUri(document.uri)) {
 				resolve(defs);
 				return;
 			}
 		}
 
 		// term definitions: $$Implements Analyzer.DEFS, Editor.NAV.TERM_DEF
+		// $$Реализует СТРУКТАН.ОПРЕДЕЛЕНИЯ, РЕДАКТОР.НАВ.ОПРЕДЕЛЕНИЕ
 		id = Util.lineFragment(tr, p.character,/\*+([^*]*)$/,/^([^*]*)\*+/s);
 		if (!id)
 			id = Util.lineFragment(tr, p.character,/_+([^*_]*)$/, /^([^*_]*)_+/s);
 		if (id)
 			resolve(project.findTerms(id));
-		resolve(null);
+		else
+			resolve(null);
 	});
 });
 
 // $$Implements Editor.NAV.IMPL, Editor.NAV.TESTS, Editor.NAV.XREF
+// $$Реализует РЕДАКТОР.НАВ.РЕАЛ, РЕДАКТОР.НАВ.ТЕСТ, РЕДАКТОР.НАВ.ССЫЛКА
 connection.onReferences((params)=>{
 	return new Promise((resolve, reject) => {
 		const document = documents.get(params.textDocument.uri);
@@ -311,10 +324,10 @@ connection.onReferences((params)=>{
 		}
 		let tr = { text, range }
 
-		let id = Util.lineFragment(tr, p.character,/.*?([\w\.]*)$/, /^([\w\.]*).*?$/s);
+		let id = Util.lineFragment(tr, p.character,/.*?([\wА-я.]*)$/, /^([\wА-я.]*).*?$/s);
 		if (id) {
 			let refs = project.findReferenceLocations(id.text);
-			if (refs.length > 0 || !isRqDoc(document)) {
+			if (refs.length > 0 || !isReqUri(document.uri)) {
 				resolve(refs);
 				return;
 			}
@@ -362,30 +375,46 @@ connection.onCompletion(
 			return res;
 
 		const pfx = text.substring(0, p.character);
-		const isrq = isRqDoc(document);
+		const dlct = dialect(document.uri);
+		const isrq = !!dlct;
+		const dkw = dialectKeywords[dlct||'shaldn']
 
 		// $$Implements Editor.CMPL.SUBJ
+		// $$Реализует РЕДАКТОР.ВВОД.ПРЕДМЕТ
 		const subj = isrq && project.getSubject(_textDocumentPosition.textDocument.uri) || "";
 		let c = fragmentCompletion(pfx,subj,p);
 		if (c)
 			res.push(c);
 
 		// $$Implements Editor.CMPL.KW_NREQ
-		c = !isrq && fragmentCompletion(pfx, "$$Implements", p, 2) || null;
-		if (c)
-			res.push(c);
+		// $$Реализует РЕДАКТОР.ВВОД.РЕАЛ
+		if (!isrq)
+			kws("Implements").forEach((kw)=>{
+				c = fragmentCompletion(pfx, "$$" + kw, p, 2) || null;
+				if (c)
+					res.push(c);
+			});
 
 		// $$Implements Editor.CMPL.KW_REQ
-		c = isrq && fragmentCompletion(pfx, "* Implements", p) || null;
+		// $$Реализует РЕДАКТОР.ВВОД.ТРЕБОВАНИЕ
+		c = isrq && fragmentCompletion(pfx, "* "+dkw["Implements"], p) || null;
 		if (c)
 			res.push(c);
 
 		c = isrq && fragmentCompletion(pfx, "**shall**", p) || null;
+		if (!c && dlct=="фядот") {
+			const txt = document.getText();
+			let dolg = txt.match(/\*\*долж(?:ен|на|но|ны)\*\*/)?.[0]??"**долж";
+			c = fragmentCompletion(pfx, dolg, p)
+		}
+
 		if (c)
 			res.push(c);
 
 		// $$Implements Editor.CMPL.IMPL_NREQ
-		let m = !isrq && pfx.match(/\$\$Implements.+?\b(\w[\w.]*)$/) || null;
+		// $$Реализует РЕДАКТОР.ВВОД.РЕАЛ.ИДЕНТ_РЕАЛ
+		const re = new RegExp(`\\$\\$(?:${kws("Implements").join("|")}).*[^\wА-я]([\\wА-я][\\wА-я.]*)$`);
+		let m = !isrq && pfx.match(re) || null;
 		if (m)
 			project.getIdsByPfx(m[1]).forEach(id=>{
 				res.push({
@@ -393,12 +422,14 @@ connection.onCompletion(
 					kind: CompletionItemKind.Keyword,
 					textEdit: TextEdit.insert(p,id.substring(m![1].length)),
 					// $$Implements Editor.CMPL.NS_ORD
+					// $$Реализует РЕДАКТОР.ВВОД.ПОДМНОЖЕСТВА
 					sortText: id.endsWith('.')?'0000000000'.substring(id.replace(/[^.]+/g, '').length)+id:id
 				})
 			});
 
 		// $$Implements Editor.CMPL.IMPL_REQ
-		m = isrq && pfx.match(/^\s*\*\s+Implements\s.*\*\*(\w[\w.]*)$/) || null;
+		// $$Реализует РЕДАКТОР.ВВОД.РЕАЛ.ИДЕНТ_ТР
+		m = isrq && pfx.match(`^\\s*\\*\\s+${dkw["Implements"]}\\s.*\\*\\*([\\wА-я][\\wА-я._]*)$`) || null;
 		if (m)
 			project.getIdsByPfx(m[1]).forEach(id => {
 				res.push({
@@ -406,12 +437,14 @@ connection.onCompletion(
 					kind: CompletionItemKind.Keyword,
 					textEdit: TextEdit.insert(p, id.substring(m![1].length)+'**'),
 					// $$Implements Editor.CMPL.NS_ORD
+					// $$Реализует РЕДАКТОР.ВВОД.ПОДМНОЖЕСТВА
 					sortText: id.endsWith('.') ? '0000000000'.substring(id.replace(/[^.]+/g, '').length) + id : id
 				});
 			});
 		
 		// $$Implements Editor.CMPL.ID_REQ
-		m = isrq && pfx.match(/^\s*\*\*(\w[\w.]*)$/) || null;
+		// $$Реализует РЕДАКТОР.ВВОД.ИДЕНТИФИКАТОР
+		m = isrq && pfx.match(/^\s*\*\*([\wА-я][\wА-я.]*)$/) || null;
 		if (m)
 			project.getIdsByPfxForFile(m[1], document.uri).forEach(id=>{
 				res.push({
@@ -419,12 +452,14 @@ connection.onCompletion(
 					kind: CompletionItemKind.Keyword,
 					textEdit: TextEdit.insert(p,id.substring(m![1].length)),
 					// $$Implements Editor.CMPL.NS_ORD
+					// $$Реализует РЕДАКТОР.ВВОД.ПОДМНОЖЕСТВА
 					sortText: id.endsWith('.') ? '0000000000'.substring(id.replace(/[^.]+/g, '').length) + id : id
 				});
 			});
 
 		// $$Implements Editor.CMPL.DEFS
-		m = isrq && pfx.match(/[^*]\*(\w[^*]*)$/) || null;
+		// $$Реализует РЕДАКТОР.ВВОД.ОПР
+		m = isrq && pfx.match(/[^*]\*([\wА-я][^*]*)$/) || null;
 		if (m)
 			project.getDefsByPfx(m[1]).forEach(t => {
 				res.push({
@@ -439,6 +474,7 @@ connection.onCompletion(
 );
 
 // $$Implements Editor.RENAME
+// $$Реализует РЕДАКТОР.ПЕРЕИМЕН
 connection.onPrepareRename(async (params: PrepareRenameParams) => {
 	const document = documents.get(params.textDocument.uri);
 	const p = params.position;
@@ -458,8 +494,10 @@ connection.onPrepareRename(async (params: PrepareRenameParams) => {
 })
 
 // $$Implements Editor.RENAME
+// $$Реализует РЕДАКТОР.ПЕРЕИМЕН
 connection.onRenameRequest((params: RenameParams)=>{
-	if (!params.newName.match(/^[a-zA-Z][\w.]+$/)) // $$Implements Editor.RENAME_VALIDATE
+	if (!params.newName.match(/^[a-zA-ZА-я][\wА-я.]+$/)) // $$Implements Editor.RENAME_VALIDATE
+		// $$Реализует РЕДАКТОР.ПЕРЕИМЕН.ПРАВ
 		return null;
 	const document = documents.get(params.textDocument.uri);
 	const p = params.position;
@@ -496,7 +534,7 @@ var analyzeFilesRequest: RequestType<{
 connection.onRequest(analyzeFilesRequest, (data) => {
 	analyzeFiles(data.files).then(
 		(files)=>{
-			analyzeFiles(data.files.filter(p => /.*\.shalldn$/.test(p) || project.fileHasReferences(p)))
+			analyzeFiles(data.files.filter(p => isReqUri(p) || project.fileHasReferences(p)))
 			.then(tellClient, reportAnalyzingFailure);
 		},
 		reportAnalyzingFailure
@@ -519,6 +557,7 @@ connection.onRequest(toggleErrWarn, async () => {
 });
 
 // $$Implements Editor.TESTS
+// $$Реализует РЕДАКТОР.ТЕСТЫ
 var toggleTestWarn: RequestType<string, any, any> = new RequestType("toggleTestWarn");
 connection.onRequest(toggleTestWarn, async (uri: string) => {
 	await project.toggleTestWarn(uri);

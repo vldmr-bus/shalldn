@@ -1,10 +1,10 @@
 {
 	"name": "shalldn",
-	"displayName": "Shalldn",
-	"description": "Shalldn requirements language support",
+	"displayName": "%shalldn%",
+	"description": "%shalldn.descr%",
 	"author": "Vladimir Avdonin",
 	"license": "MIT",
-	"version": "0.0.37",
+	"version": "0.0.38",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/vldmr-bus/shalldn"
@@ -27,62 +27,58 @@
 	],
 	"preview": true,
 	"engines": {
-		"vscode": "^1.43.0"
+		"vscode": "^1.93.0"
 	},
 	"activationEvents": [
 		"*"
 	],
 	"main": "./client/out/extension",
+	"l10n": "./l10n",
 	"contributes": {
 		"commands": [
 			{
 				"command": "shalldn.toggleTestWarn",
-				"title": "Toggle warnings for requirements without tests in this file",
-				"category": "Shalldn"
+				"title": "%shalldn.toggleTestWarn%",
+				"category": "%shalldn%"
 			},
 			{
 				"command": "shalldn.toggleErrWarn",
-				"title": "Toggle showing errors as warnings",
-				"category": "Shalldn"
+				"title": "%shalldn.toggleErrWarn%",
+				"category": "%shalldn%"
 			},
 			{
 				"command": "shalldn.exportHtml",
-				"title": "Export project as HTML files collection",
-				"category": "Shalldn"
+				"title": "%shalldn.exportHtml%",
+				"category": "%shalldn%"
 			},
 			{
 				"command": "shalldn.coverageReport",
-				"title": "Create coverage report",
-				"category": "Shalldn"
+				"title": "%shalldn.coverageReport%",
+				"category": "%shalldn%"
 			},
 			{
 				"command": "shalldn.dict.reveal",
-				"title": "Term definition",
+				"title": "%shalldn.dict.reveal%",
 				"icon": "$(symbol-reference)"
 			},
 			{
 				"command": "shalldn.def.reveal",
-				"title": "Reveal",
-				"icon": "$(symbol-reference)"
-			},
-			{
-				"command": "shalldn.def.reveal",
-				"title": "Reveal",
+				"title": "%shalldn.def.reveal%",
 				"icon": "$(symbol-reference)"
 			},
 			{
 				"command": "shalldn.expand.all",
-				"title": "Expand All",
+				"title": "%shalldn.expand.all%",
 				"icon": "$(expand-all)"
 			},
 			{
 				"command": "shalldnTags.ungroup",
-				"title": "Flat view",
+				"title": "%shalldnTags.ungroup%",
 				"icon": "$(list-flat)"
 			},
 			{
 				"command": "shalldnTags.group",
-				"title": "Tree view",
+				"title": "%shalldnTags.group%",
 				"icon": "$(list-tree)"
 			}
 		],
@@ -121,7 +117,7 @@
 			"activitybar": [
 				{
 					"id": "shalldn-explorer",
-					"title": "Shalldn Explorer",
+					"title": "%shalldn.explorer%",
 					"icon": "image/Shalldn-24x24.png"
 				}
 			]
@@ -130,12 +126,12 @@
 			"shalldn-explorer": [
 				{
 					"id": "shalldnDictionary",
-					"name": "Dictionary",
+					"name": "%shalldnDictionary%",
 					"icon": "image/dict.svg"
 				},
 				{
 					"id": "shalldnTags",
-					"name": "Tagged requirements",
+					"name": "%shalldnTags%",
 					"icon": "$(tag)"
 				}
 			]
@@ -143,22 +139,22 @@
 		"viewsWelcome": [
 			{
 				"view": "shalldnDictionary",
-				"contents": "No terms are defined in the project"
+				"contents": "%shalldnDictionary.empty%"
 			},
 			{
 				"view": "shalldnTags",
-				"contents": "Requirements preceeded with $Tag will be show here"
+				"contents": "%shalldnTags.empty%"
 			}
 		],
 		"configuration": {
 			"type": "object",
-			"title": "Shalldn configuration",
+			"title": "%shalldn.config%",
 			"properties": {
 				"shalldnLanguageServer.maxNumberOfProblems": {
 					"scope": "resource",
 					"type": "number",
 					"default": 100,
-					"description": "Controls the maximum number of problems produced by the server."
+					"description": "%shalldnLanguageServer.maxNumberOfProblems%"
 				},
 				"shalldnLanguageServer.trace.server": {
 					"scope": "window",
@@ -186,16 +182,17 @@
 		"serve": "tsc -b && node ./server/out/http-server.js"
 	},
 	"devDependencies": {
-		"@cucumber/cucumber": "^9.1.2",
+		"@cucumber/cucumber": "^11.0.0",
 		"@types/mocha": "^8.2.2",
-		"@types/node": "^16.11.9",
+		"@types/node": "^18",
 		"@typescript-eslint/eslint-plugin": "^4.23.0",
 		"@typescript-eslint/parser": "^4.23.0",
+		"@vscode/l10n-dev": "0.0.35",
 		"del-cli": "^4.0.1",
 		"eslint": "^7.26.0",
 		"mocha": "^8.3.2",
-		"ts-node": "^10.4.0",
-		"typescript": "^4.4.3"
+		"ts-node": "^10.9.2",
+		"typescript": "^4.7.4"
 	},
 	"dependencies": {
 		"ignore": "^5.1.9",

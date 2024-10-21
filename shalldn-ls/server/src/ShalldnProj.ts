@@ -23,14 +23,143 @@ import ShalldnTermDef from './model/ShalldnTermDef';
 import MultIgnore from '../../shared/lib/multignore';
 import { URI } from 'vscode-uri';
 import { Trees } from '../../shared/lib/trees';
+import * as l10n  from '@vscode/l10n';
 import { FsUtil } from '../../shared/lib/fsutil';
+
+const RuEndings = new Set([
+'а',
+'ал',
+'ала',
+'али',
+'ам',
+'ами',
+'ас',
+'ать',
+'ах',
+'ая',
+'е',
+'ее',
+'её',
+'ей',
+'ел',
+'ела',
+'ели',
+'ем',
+'еми',
+'емя',
+'ет',
+'ёт',
+'ете',
+'ёте',
+'еть',
+'ех',
+'ёх',
+'ешь',
+'ёшь',
+'ею',
+'и',
+'ие',
+'ий',
+'им',
+'им',
+'ими',
+'ит',
+'ит',
+'ите',
+'их',
+'ишь',
+'ишь',
+'ию',
+'м',
+'ми',
+'мя',
+'о',
+'ов',
+'ого',
+'ое',
+'оё',
+'ой',
+'ол',
+'ола',
+'оли',
+'ом',
+'ому',
+'оть',
+'ою',
+'у',
+'ул',
+'ула',
+'ули',
+'ум',
+'умя',
+'ут',
+'уть',
+'ух',
+'ую',
+'шь',
+'ы',
+'ые',
+'ый',
+'ь',
+'ю',
+'ют',
+'я',
+'ял',
+'яла',
+'яли',
+'ят',
+'ять',
+'яя',
+]);
+
+export const dialectKeywords: {[key:string]:{ [key: string]: string }} = {
+	"shalldn": {
+		"Definitions": "Definitions",
+		"Rationale": "Rationale",
+		"Implements": "Implements",
+		"Tests": "Tests",
+		"Scenario": "Scenario",
+		"Scenario Outline": "Scenario Outline"
+	},
+	"фядот": {
+		"Definitions": "Определения",
+		"Rationale": "Обоснование",
+		"Implements": "Реализует",
+		"Tests": "Тестирует",
+		"Scenario": "Сценарий",
+		"Scenario Outline": "Шаблон сценария"
+	}
+}
+
+export const Dialects = Object.keys(dialectKeywords);
+
+export function kws(key:string) {
+	return Dialects.map((d)=>dialectKeywords[d][key]);
+}
+
+export function dialect(uri:string) {
+	let p = URI.parse(uri).fsPath;
+	return path.extname(p).toLowerCase().match(`(${Dialects.join('|')})$`)?.[1]
+}
+
+export function isReqUri(uri:string) {
+	return !!dialect(uri);
+}
+
+const ImplementsRE = new RegExp(`\\$\\$(${kws("Implements").join("|")})`);
+const ImplTestRE = new RegExp(`\\$\\$(${[...kws("Implements"),...kws("Tests")].join("|")})`);
+const ScrenarioRE = new RegExp("(?:" + [...kws("Scenario"), ...kws("Scenario Outline")].join("|") +"):\\s*([\\w_А-я]+\\.[\\w_А-я.]+)([^\\w_А-я.]?|$)");
 
 class ShalldnProjectRqAnalyzer implements shalldnListener {
 	constructor(
 		private uri:string,
 		private proj: ShalldnProj
-	) { }
+	) { 
+			let d = dialect(uri)||'shalldn';
+			this.dialect = dialectKeywords[d];
+	}
 
+	private dialect: {[key:string]:string};
 	public subject = '';
 	public titleRange?:Range;
 	private groupImplmentation:{level:integer,ids:string[]}[]=[];
@@ -62,16 +191,17 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		};
 		let tags = ctx.tag();
 		if (tags)
-			def.tags = [...new Set<string>(tags.map(t=>t._id.text||'Invalid tag'))];
+			def.tags = [...new Set<string>(tags.map(t=>t._id.text||l10n.t("Invalid tag")))];
 		try {
 			this.proj.addRequirement(def);
 			//$$Implements Parser.ERR.NO_SUBJ
+			//$$Реализует СИНТАН.ОШИБКА.ТР_ПРЕДМЕТ
 			let pre = this.getText(ctx._pre);
-			if (this.subject && !pre.trim().endsWith(this.subject))
+			if (this.subject && !pre.trim().toLocaleLowerCase().endsWith(this.subject.toLocaleLowerCase()))
 				this.proj.addDiagnostic(
 					this.uri,
 					Diagnostics.error(
-					`The requirement subject is different from the document subject ${this.subject}.`,
+						l10n.t("The requirement subject is different from the document subject {0}.", this.subject),
 					Util.rangeOfContext(ctx._pre)
 				));
 		} catch (e: any) {
@@ -84,20 +214,22 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			if (this.groupImplmentation.length)
 				break;
 			// $$Implements Parser.WARN_RTNL
+			// $$Реализует СИНТАН.ОБОСН, СИНТАН.ПРЕДУПР.БЕЗ_РЕАЛ
 			if (list && list.ul_element().some(e => 
-				e.l_element().childCount&&e.l_element().getChild(0)?.text.startsWith('Rationale:'))) // $$Implements Parser.RTNL
+				e.l_element().childCount && e.l_element().getChild(0)?.text.search(this.dialect['Rationale']+':')==0)) // $$Implements Parser.RTNL
 			{
 				this.proj.addDiagnostic(this.uri,
 					Diagnostics.warning(
-						`Requirement ${id} is justified only by its rationale and by none of higher level requirements`,
+						l10n.t("Requirement {0} is justified only by its rationale and by none of higher level requirements", id),
 						idRange
 					))
 				break;
 			}
 			// $$Implements Parser.ERR.NO_JSTFCTN
+			// $$Реализует СИНТАН.ОШИБКА.НЕТ_ОБОСН
 			this.proj.addDiagnostic(this.uri,
 				Diagnostics.error(
-					`Requirement ${id} does not have any justification`,
+					l10n.t("Requirement {0} does not have any justification", id),
 					idRange
 				));
 		}
@@ -110,16 +242,19 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	
 	enterImplmnt(ctx: ImplmntContext) {
 		// $$Implements Parser.IMPLMNT.INDVDL
+		// $$Реализует СИНТАН.РЕАЛЕЗАЦИЯ.ИНД
 		let parentRq = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_requirement) ? <RequirementContext>ctx.parent.parent:undefined;
 		// $$Implements Parser.IMPLMNT.GRP
+		// $$Реализует СИНТАН.РЕАЛЕЗАЦИЯ.ГРП
 		let parentTitle = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_title) ? <TitleContext>ctx.parent.parent : undefined;
 		let parentHeading:HeadingContext|undefined = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_heading) ? <HeadingContext>ctx.parent.parent : undefined;
 		// $$Implements Parser.ERR.IMPLMNT
+		// $$Реализует СИНТАН.ОШИБКА.РЕАЛИЗАЦИЯ
 		if (!(parentRq || parentHeading || parentTitle)) {
 			this.proj.addDiagnostic(
 				this.uri,
 				Diagnostics.error(
-				"Implementation clause in the list that is not immediately after requirement or heading", 
+				l10n.t("Implementation clause in the list that is not immediately after requirement or heading"), 
 				Util.rangeOfContext(ctx)
 			));
 			return;
@@ -145,6 +280,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	}
 
 	// $$Implements Parser.XREF
+	// $$Реализует СИНТАН.ССЫЛКА
 	enterXref(ctx: XrefContext) {
 		let ids: { id: string, range: Range }[] = [];
 		ctx.bolded_id().forEach(x=>ids.push({
@@ -155,6 +291,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	}
 
 	// $$Implements Parser.INLN_DEF_DRCT
+	// $$Реализует СИНТАН.ОПР.КНТ.ПРМ
 	enterDef_drct(ctx: Def_drctContext) {
 		let def: ShalldnTermDef = {
 			uri: this.uri,
@@ -166,13 +303,14 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	}
 
 	// $$Implements Parser.INLN_DEF_REV
+	// $$Реализует СИНТАН.ОПР.КНТ.ОБР
 	enterDef_rev(ctx: Def_revContext) {
 		let body = ctx._body.plain_phrase();
 		if (!body) {
 			this.proj.addDiagnostic(
 				this.uri,
 				Diagnostics.error(
-					"Reverse inline definition without body",
+					l10n.t("Reverse inline definition without body"),
 					Util.rangeOfContext(ctx)
 				));
 			return;
@@ -187,13 +325,14 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	}
 
 	// $$Implements Parser.INLN_DEF_IMP
+	// $$Реализует СИНТАН.ОПР.КНТ.ПОЛН
 	enterNota_bene(ctx: Nota_beneContext) {
 		let subj = ctx.italiced_phrase().plain_phrase();
 		if (!subj) {
 			this.proj.addDiagnostic(
 				this.uri,
 				Diagnostics.error(
-					"Empty subject in implicit inline definition",
+					l10n.t("Empty subject in implicit inline definition"),
 					Util.rangeOfContext(ctx)
 				));
 			return;
@@ -207,7 +346,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			this.proj.addDiagnostic(
 				this.uri,
 				Diagnostics.error(
-					"Implicit inline definition is not within a sentence",
+					l10n.t("Implicit inline definition is not within a sentence"),
 					Util.rangeOfContext(ctx)
 				));
 			return;
@@ -243,12 +382,13 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		while (this.groupImplmentation.length && this.groupImplmentation[0].level >= level)
 			this.groupImplmentation.shift();
 
-		if (ctx.phrase().text == 'Definitions') {
+		if (ctx.phrase().text == this.dialect["Definitions"]) {
 			this.defSectLevel = level;
 			return;
 		}
 
 		// $$Implements Parser.DEF_SECT
+		// $$Реализует СИНТАН.ОПР.РАЗДЕЛ
 		if (level - 1 == this.defSectLevel) {
 			let range = Util.rangeOfContext(ctx);
 			this.currentTermDef = {
@@ -263,6 +403,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		let defs: ShalldnRqDef[]=[];
 		ctx.phrase().italiced_phrase().forEach(p=>{
 			// $$Implements Parser.INFRML_ID
+			// $$Реализует СИНТАН.НЕФОРМ
 			let id = p.plain_phrase();
 			if (!id)
 				return;
@@ -275,11 +416,12 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		});
 
 		// $$Implements Parser.ERR.HDNG_MULT_ITLC
+		// $$Реализует СИНТАН.ОШИБКА.НЕФОРМ.ПОВТ_ИД
 		if (defs.length>1)
 			this.proj.addDiagnostic(
 				this.uri,
 				Diagnostics.error(
-				"Heading shall have a single italicized phrase as an informal requirement identifier", 
+				l10n.t("Heading shall have a single italicized phrase as an informal requirement identifier"), 
 				Util.rangeOfContext(ctx)
 			));
 		defs.forEach(d=>this.proj.addRequirement(d));
@@ -369,7 +511,7 @@ export default class ShalldnProj {
 		if (!def.id) {
 			this.addDiagnostic(
 				def.uri,
-				Diagnostics.error(`Requirement without identifier`, def.range)
+				Diagnostics.error(l10n.t("Requirement without identifier"), def.range)
 			);
 			return;
 		}
@@ -380,12 +522,13 @@ export default class ShalldnProj {
 			this.RqDefs.set(def.id,defs)
 		}
 		// $$Implements Parser.ERR.DUP_RQ_ID, Analyzer.ERR.DUP_RQ_ID, Editor.ERR.MULT_DEF
+		// $$Реализует СИНТАН.ОШИБКА.ИДЕНТИФИКАТОРЫ, СТРУКТАН.ОШИБКА.ДУБЛИКАТ, РЕДАКТОР.ОШИБКА.НЕСК.ТР
 		let multiple = defs.length>0;
 		defs.push(def);
 		if (multiple) {
 			this.addDiagnostic(
 				def.uri,
-				Diagnostics.error(`Requirement with id ${def.id} already exists`, def.range)
+				Diagnostics.error(l10n.t("Requirement with id {0} already exists", def.id), def.range)
 			);
 		}
 		return def;
@@ -397,7 +540,7 @@ export default class ShalldnProj {
 		let clauseRange = Util.rangeOfContext(clause);
 		ids.forEach(id=>{
 			if (!id) {
-				Diagnostics.error(`Definition without subject`, clauseRange);
+				Diagnostics.error(l10n.t("Definition without subject"), clauseRange);
 				return;
 			}
 			let ref: ShalldnRqRef = {uri, id:id.id, idRange:  id.range, tgtRange,clauseRange,kind:RefKind.Implementation};
@@ -416,7 +559,7 @@ export default class ShalldnProj {
 		let clauseRange = Util.rangeOfContext(clause);
 		ids.forEach(id => {
 			if (!id) {
-				Diagnostics.error(`Empty cross-reference`, clauseRange);
+				Diagnostics.error(l10n.t("Empty cross-reference"), clauseRange);
 				return;
 			}
 			let ref: ShalldnRqRef = { uri, id: id.id, idRange: id.range, clauseRange, kind: RefKind.Xref };
@@ -435,13 +578,14 @@ export default class ShalldnProj {
 		if (!def.subj) {
 			this.addDiagnostic(
 				def.uri,
-				Diagnostics.error(`Definition without subject`, def.range)
+				Diagnostics.error(l10n.t("Definition without subject"), def.range)
 			);
 			return;
 		}
 		let subj = def.subj;
 		// $$Implements Analyzer.DEFS_CASE
-		if (subj.search(/[a-z]/) >= 0)
+		// $$Реализует СТРУКТАН.ОПРЕДЕЛЕНИЯ.РЕГИСТР
+		if (subj.search(/[a-zа-я]/) >= 0)
 			subj = subj.toLowerCase();
 		if (!fileData!.TermDefs)
 			fileData!.TermDefs=[];
@@ -456,10 +600,11 @@ export default class ShalldnProj {
 		defs.push(def);
 
 		// $$Implements Analyzer.ERR.DEFS_DUPS
+		// $$Реализует СТРУКТАН.ОШИБКА.ОПРЕДЕЛЕНИЯ.ДУБЛИКАТ
 		if (multiple) {
 			this.addDiagnostic(
 				def.uri,
-				Diagnostics.error(`The term "${def.subj}" has multiple definitions`, def.range)
+				Diagnostics.error(l10n.t("The term \"{0}\" has multiple definitions", def.subj), def.range)
 			);
 		}
 		return def;
@@ -503,22 +648,24 @@ export default class ShalldnProj {
 
 	checkRefsTargets(fileData:FileData, uri:string) {
 		// $$Implements Analyzer.ERR.NOIMPL_TGT, Analyzer.TEST.NO_TGT
+		// $$Реализует СТРУКТАН.ОШИБКА.ПРЕДМЕТ_РЕАЛИЗАЦИИ, СТРУКТАН.ТЕСТ.НЕТ_ТРЕБОВАНИЯ
 		fileData.RqRefs.forEach(ref => {
 			let defs = this.RqDefs.get(ref.id);
 			if (!defs || defs.length==0) {
 				this.addDiagnostic(
 					uri,
-					Diagnostics.error(`${RefKind[ref.kind]} of non-existing requirement ${ref.id}`, ref.clauseRange)
+					Diagnostics.error(l10n.t("{0} of non-existing requirement {1}", l10n.t(RefKind[ref.kind]), ref.id), ref.clauseRange)
 				);
 			}
 		});
 		// $$Implements Analyzer.ERR.XREF_TGT
+		// $$Реализует СТРУКТАН.ОШИБКА.ССЫЛКА
 		fileData.Xrefs.forEach(ref => {
 			let defs = this.RqDefs.get(ref.id);
 			if (!defs || defs.length==0) {
 				this.addDiagnostic(
 					uri,
-					Diagnostics.error(`Reference to non-existing requirement ${ref.id}`, ref.idRange)
+					Diagnostics.error(l10n.t("Reference to non-existing requirement {0}", ref.id), ref.idRange)
 				);
 			}
 		});
@@ -557,12 +704,13 @@ export default class ShalldnProj {
 		if (this.ignored(uri))
 			return;
 		this.resetDiagnostics(uri);
-		if (path.extname(uri).toLowerCase() == '.shalldn')
-			this.analyzeRqFile(uri,text); 
+		if (dialect(uri))
+			this.analyzeRqFile(uri,text);
 		else
 			this.analyzeNonRqFile(uri,text);
 
 		// $$Implements Editor.INFO.NOIMPL, Editor.INFO.NOIMPL_DOC, Editor.ERR.NO_IMPLMNT_TGT
+		// $$Реализует РЕДАКТОР.ИНФО.НЕТ_РЕАЛ, РЕДАКТОР.ИНФО.НЕТ_РЕАЛ_ДОК, РЕДАКТОР.ОШИБКА.ИМПЛ_БЕЗ_ТР
 		this.connection?.sendDiagnostics({ uri, diagnostics:this.getDiagnostics(uri) });
 	}
 
@@ -577,6 +725,7 @@ export default class ShalldnProj {
 		let inputStream = CharStreams.fromString(text);
 		let lexer = new shalldnLexer(inputStream);
 		// $$Implements Editor.PRBLM_PARSER
+		// $$Реализует РЕДАКТОР.ПРОБЛЕМЫ
 		lexer.addErrorListener(new LexerErrorListener(this.cpblts?.DiagnRelated ? uri : "", d => this.addDiagnostic(uri,d)));
 		let tokenStream = new CommonTokenStream(lexer);
 		let parser = new shalldnParser(tokenStream);
@@ -585,11 +734,12 @@ export default class ShalldnProj {
 		ParseTreeWalker.DEFAULT.walk(analyzer as ParseTreeListener, dctx);
 
 		//$$Implements Parser.ERR.No_DOC_Subject
+		//$$Реализует СИНТАН.ОШИБКА.НЕТ_ПРЕДМЕТА
 		if (!analyzer.subject)
 			this.addDiagnostic(
 				uri,
-				Diagnostics.error(`No subject defined in the document.`, {line:0,character:0})
-					.addRelated('The subject of the document is defined by the only italicized group of words in the first line of the document')
+				Diagnostics.error(l10n.t("No subject defined in the document."), {line:0,character:0})
+					.addRelated(l10n.t("The subject of the document is defined by the only italicized group of words in the first line of the document"))
 			);
 
 		fileData.subject = analyzer.subject;
@@ -602,20 +752,23 @@ export default class ShalldnProj {
 					if (!refs || refs.length==0)
 						noimp.push({ id: def.id, idRange:def.idRange})
 				});
+				// $$Реализует СТРУКТАН.ИНФО.НЕТ_РЕАЛ_ДОК
 				if (noimp.length == fileData.RqDefs.length) // $$Implements Analyzer.INFO_NOIMPL_DOC
 					this.addDiagnostic(
 						uri,
-						Diagnostics.info(`No requirement in the document has implementation`, analyzer.titleRange??Util.lineRangeOfPos({line:0,character:0}))
+						Diagnostics.info(l10n.t("No requirement in the document has implementation"), analyzer.titleRange??Util.lineRangeOfPos({line:0,character:0}))
 					);
 				else if (noimp.length) // $$Implements Analyzer.INFO_NOIMPL
+					// $$Реализует СТРУКТАН.ИНФО.НЕТ_РЕАЛ
 					noimp.forEach(v => this.addDiagnostic(
 						uri,
-						Diagnostics.info(`Requirement ${v.id} does not have implementation`, v.idRange)
+						Diagnostics.info(l10n.t("Requirement {0} does not have implementation", v.id), v.idRange)
 					));
 				if (this.FileWithTestWarn.has(uri)) 
 					this.addTestWarnings(uri,fileData);
 
 				// $$Implements Parser.ERR.WORDS
+				// $$Реализует СИНТАН.ОШИБКА.СЛОВА
 				let regex=/(?<=[^'"])\b(TBD|TODO|FIXME)\b(?=[^'"])/g;
 				let match: RegExpExecArray | null;
 				let lines = text.replace(/\r/g, '').split('\n');
@@ -627,24 +780,26 @@ export default class ShalldnProj {
 						if (!def)
 							continue;
 						for (const w of new Set(m))
-							this.addDiagnostic(uri,Diagnostics.error(`Requirement ${def.id} contains ${w}`,def.idRange));
+							this.addDiagnostic(uri, Diagnostics.error(l10n.t("Requirement {0} contains {1}", def.id, w),def.idRange));
 					}
 				}
 			}
 
 			// $$Implements Analyzer.ERR.NOIMPL_TGT
+			// $$Реализует СТРУКТАН.ОШИБКА.ПРЕДМЕТ_РЕАЛИЗАЦИИ
 			this.checkRefsTargets(fileData, uri);
 		}
 	}
 	
 	// $$Implements Editor.TESTS
+	// $$Реализует РЕДАКТОР.ТЕСТЫ
 	addTestWarnings(uri:string,fileData:FileData) {
 		fileData.RqDefs.forEach(def => {
 			let notests = !(this.RqRefs.get(def.id)?.some(r => r.kind == RefKind.Test));
 			if (notests)
 				this.addDiagnostic(
 					uri,
-					Diagnostics.warning(`Requirement ${def.id} does not have tests`, def.idRange)
+					Diagnostics.warning(l10n.t("Requirement {0} does not have tests", def.id), def.idRange)
 					)
 		});
 	}
@@ -674,15 +829,17 @@ export default class ShalldnProj {
 		for (let l=0;l<lines.length; l++) {
 			let line = lines[l];
 			// $$Implements Analyzer.CMNT_IMPLMNT, Analyzer.TEST.CLAUSE
-			let m = line.trim().match(/.*\$\$(?:Implements|Tests)\s+([\w\.]+(?:\s*,\s*[\w\.]+\s*)*)/);
+			// $$Реализует СТРУКТАН.РЕАЛ.ВНЕШН, СТРУКТАН.ТЕСТ.УТВ
+			let m = line.match(ImplTestRE);
 			if (m) {
-				let csp = line.search(/\$\$(Implements|Tests)/);
-				let clauseRange={start:{line:l,character:csp},end:{line:l,character:line.length}};
-				m[1].split(',').forEach(s=>{
+				let clauseRange={start:{line:l,character:m.index!},end:{line:l,character:line.length}};
+				let kind = line.match(ImplementsRE)?RefKind.Implementation:RefKind.Test;
+				line.substring(m.index!+m[0].length).split(',').forEach(s=>{
 					let id = s.trim();
+					if (!id.match(/[\w_А-я]+\.[\w_А-я.]+/))
+						return;
 					let sp = line.search(id);
 					let idRange:Range={start:{line:l,character:sp},end:{line:l,character:sp+id.length}};
-					let kind = line.substring(csp).startsWith('$$Implements')?RefKind.Implementation:RefKind.Test;
 					let ref: ShalldnRqRef = {uri, id, idRange, clauseRange, kind };
 					this.addRefNonRqFile(fileData!,ref);
 				});
@@ -690,7 +847,8 @@ export default class ShalldnProj {
 			if (path.extname(uri) != ".feature")
 				continue;
 			// $$Implements Analyzer.TEST.GHERKIN
-			m = line.trim().match(/^Scenario(?: Outline)?:\s*([\w_]+\.[\w_\.]+)\b/);
+			// $$Реализует СТРУКТАН.ТЕСТ.GHERKIN
+			m = line.trim().match(ScrenarioRE);
 			if (m) {
 				let id = m[1];
 				let sp = line.search(id);
@@ -702,6 +860,7 @@ export default class ShalldnProj {
 			
 		}
 
+		// $$Реализует СТРУКТАН.ОШИБКА.ПРЕДМЕТ_РЕАЛИЗАЦИИ, СТРУКТАН.ТЕСТ.НЕТ_ТРЕБОВАНИЯ
 		if (!firstPass) // $$Implements Analyzer.ERR.NOIMPL_TGT, Analyzer.TEST.NO_TGT
 			this.checkRefsTargets(fileData,uri);
 
@@ -716,6 +875,7 @@ private static debounceTime = 400;
 // $$Implements Analyzer.PROJECT
 public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): AnalyzerPromise<string[]> {
 	// $$Implements Analyzer.IGNORE_NONPROJ
+	// $$Реализует СТРУКТАН.ИГНОР_ВНЕШН
 	var projectfiles = files.filter(f=>this.wsFolders.some(p=>FsUtil.isInside(p,f)));
 	if (projectfiles.length == 0) {
 		let ap = new AnalyzerPromise<string[]>();
@@ -736,7 +896,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		this.pendingAnalysis = new AnalyzerPromise<string[]>();
 		let files = [...this.pendingFiles];
 		this.pendingFiles.clear();
-		this.connection?.sendRequest("analyzeStart")
+		this.connection?.sendRequest("analyzeStart",0)
 			.catch(r => {
 				console.log(r)
 			});
@@ -787,6 +947,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 	}
 
 	// $$Implements Analyzer.RQS
+	// $$Реализует СТРУКТАН.ТРЕБОВАНИЯ
 	public findDefinitionLocations(id:string, range?:Range): LocationLink[] {
 		let defs = this.RqDefs.get(id)||[];
 		return defs.map(def => <LocationLink>{
@@ -806,9 +967,11 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 	}
 
 	// $$Implements Analyzer.IMPLNT, Analyzer.TEST.LIST
+	// $$Реализует СТРУКТАН.РЕАЛ, СТРУКТАН.ТЕСТ.СПИСОК
 	public findReferenceLocations(id: string): Location[] {
 		let defs = this.RqRefs.get(id) || [];
 		// $$Implements Editor.NAV.XREF
+		// $$Реализует РЕДАКТОР.НАВ.ССЫЛКА
 		let xrefs = this.Xrefs.get(id);
 		if (xrefs)
 			defs = defs.concat(xrefs);
@@ -821,9 +984,32 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 	public findTerms(tr: Util.TextRange): LocationLink[] {
 		let subj = tr.text;
 		// $$Implements Analyzer.DEFS_CASE
-		if (subj.search(/[a-z]/)>=0)
+		if (subj.search(/[a-zа-я]/)>=0)
 			subj=subj.toLowerCase();
 		let defs = this.TermDefs.get(subj)||[];
+		if (!defs.length && subj.search(/[А-я]/)>=0) {
+			const words = subj.split(/[\s.,-]+/);
+			const wc = words.length;
+			for (const term of this.TermDefs.keys()) {
+				let tws = term.split(/[\s.,-]+/);
+				if (tws.length != wc)
+					continue;
+				if (tws.every((tw,i)=>{
+					const word = words[i];
+					if (tw == word)
+						return true;
+					const p = Util.commonPrefix(tw,words[i]);
+					if (!p)
+						return false;
+					if (p.length >= tw.length)
+						return true;
+					const ending = tw.slice(p.length);
+					return RuEndings.has(ending);
+				})) {
+					defs = this.TermDefs.get(term)||[];
+				}
+			}
+		}
 		return defs.map(def => <LocationLink>{
 			targetUri: def.uri,
 			targetRange: def.bodyRange,
@@ -857,8 +1043,9 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 	}
 
 	// $$Implements Editor.TESTS
+	// $$Реализует РЕДАКТОР.ТЕСТЫ
 	public async toggleTestWarn(uri:string) {
-		if (path.extname(uri).toLowerCase() != '.shalldn')
+		if (!isReqUri(uri))
 			return;
 		let fileData = this.Files.get(uri);
 		if (!fileData)
@@ -866,7 +1053,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		let diagnostics = this.getDiagnostics(uri);
 		if (this.FileWithTestWarn.has(uri)) {
 			this.FileWithTestWarn.delete(uri);
-			diagnostics = diagnostics.filter(d=>!d.message.endsWith("does not have tests"))
+			diagnostics = diagnostics.filter(d=>!d.message.endsWith(l10n.t("does not have tests")))
 			this.diagnostics.set(uri, diagnostics);
 		} else {
 			this.FileWithTestWarn.add(uri);
@@ -902,16 +1089,16 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 			let refs = this.RqRefs.get(def.id);
 			if (!refs)
 				return;
-			refs = refs.filter(r => path.extname(r.uri).toLowerCase() == ".shalldn");
+			refs = refs.filter(r => isReqUri(r.uri));
 			if (!refs.length)
 				return;
-			lines[i] = lines[i].replace(def.id, `$&<a href="#${defid}_REFS">[REFS]</a>`)
+			lines[i] = lines[i].replace(def.id, `$&<a href="#${defid}_REFS">[${l10n.t("REFS")}]</a>`)
 			let links:string[] = [];
 			let j=1;
 			refs.forEach((ref,idx)=>{
 				let dapath = URI.parse(ref.uri).fsPath;
 				let rpath = path.relative(path.dirname(apath), dapath).replace(/\\/g, '/');
-				if (!ref.uri.endsWith('.shalldn'))
+				if (!isReqUri(ref.uri))
 					return;
 				links.push(`[${j++}](${rpath}#${defid}_${idx})`);
 			})
@@ -942,7 +1129,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		if (references.length) {
 			let titleLine = 1+lines.findIndex(l=>l.startsWith('#'));
 			references.sort();
-			lines.splice(titleLine, 0,'  \n# REFERENCES:  ',...references);
+			lines.splice(titleLine, 0,'  \n# '+l10n.t("REFERENCES")+':  ',...references);
 		}
 		return lines.join('\n');
 	}
@@ -1009,7 +1196,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		let wsp = URI.parse(workspaceUri).fsPath;
 		let files:string[]=[];
 		for (const uri of this.Files.keys()) {
-			if (path.extname(uri).toLowerCase() != '.shalldn')
+			if (!isReqUri(uri))
 				continue;
 			let fp = URI.parse(uri).fsPath;
 			if (!FsUtil.isInside(wsp,fp))
@@ -1017,7 +1204,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 			files.push(fp);
 		}
 		if (files.length == 0)
-			throw "No exportable files in workspace";
+			throw l10n.t("No exportable files in workspace");
 		let rpaths:string[] = [];
 		for (let i=0;i<files.length;i++) {
 			let fp = files[i];
@@ -1025,14 +1212,14 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 			let dstDir = path.resolve(rootp,rp);
 			fs.mkdirSync(dstDir,{recursive:true});
 			if (!fs.existsSync(dstDir))
-				throw `Can not create directory ${dstDir}`;
+				throw l10n.t("Can not create directory {0}", dstDir);
 			let md = this.expandMD(fp);
 			let html = marked.parse(md);
-			html = html.replace(/(<a href="[^#]+).shalldn#/g,"$1.html#");
+			html = html.replace(new RegExp(`(<a href="[^#]+)(?:${Dialects.join('|')})#`,'g'),"$1.html#");
 			let df = path.basename(fp,path.extname(fp))+".html";
 			fs.writeFileSync(path.resolve(dstDir,df),html);
 			rpaths.push(`${rp}/${df}`);
-			progress(`Exported ${rp}`,i/files.length*100);
+			progress(l10n.t("Exported {0}", rp),i/files.length*100);
 		}
 
 		let dot = String.fromCharCode(1);
@@ -1085,11 +1272,11 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 			}, result);
 			let pctImpl = Math.round(result.implementedRq / nsNode.leafCount! * 1000)/10;
 			let implAvg = result.implementedRq?Math.round(result.implCount / result.implementedRq * 10) / 10:0;
-			let implAvgTxt = implAvg?`, ${implAvg} average per requirement`:"";
+			let implAvgTxt = implAvg ? l10n.t(", {0} average per requirement", implAvg):"";
 			let pctTest = Math.round(result.testetdRq / nsNode.leafCount! * 1000) / 10;
 			let testAvg = result.testetdRq?Math.round(result.testCount / result.testetdRq * 10) / 10:0;
-			let testAvgTxt = testAvg?`, ${testAvg} average per requirement`:"";
-			let html = `<b>${nsNode.id}</b>: ${pctImpl}% implemented (${result.implementedRq}/${nsNode.leafCount!}${implAvgTxt})  ${pctTest}% tested (${result.testetdRq}/${nsNode.leafCount!}${testAvgTxt})`;
+			let testAvgTxt = testAvg ? l10n.t(", {0} average per requirement", testAvg):"";
+			let html = `<b>${nsNode.id}</b>: ${pctImpl}% ${l10n.t("implemented")} (${result.implementedRq}/${nsNode.leafCount!}${implAvgTxt})  ${pctTest}% ${l10n.t("tested")} (${result.testetdRq}/${nsNode.leafCount!}${testAvgTxt})`;
 			if (result.html)
 				html = `<details><summary>${html}</summary><ul>${result.html}</ul></details>`;
 			else
@@ -1125,7 +1312,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 					cnt++;
 				}
 			}
-			tree.push({ id: 'Unscoped requirements', children: Array.from(children.entries()).map(kvp=> { return {id:kvp[0],children:kvp[1], leafCount:kvp[1].length}}), leafCount: cnt});
+			tree.push({ id: l10n.t("Unscoped requirements"), children: Array.from(children.entries()).map(kvp=> { return {id:kvp[0],children:kvp[1], leafCount:kvp[1].length}}), leafCount: cnt});
 		}
 		let ws = this.wsFolders.map(p => {
 			let d = path.basename(p)
@@ -1145,9 +1332,9 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 		</style>
 	</head>
 	<body>
-		<h1>Requirements coverage report</h1>
-		<h3>Workspace: ${ws}</h3>
-		<h6>Created on ${new Date().toLocaleString()}</h6>
+		<h1>${l10n.t("Requirements coverage report")}</h1>
+		<h3>${l10n.t("Workspace")}: ${ws}</h3>
+		<h6>${l10n.t("Created on")} ${new Date().toLocaleString()}</h6>
 	`;
 		tree.forEach(n => {
 			let r = this.coverageHtml(n);

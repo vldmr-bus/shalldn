@@ -3,6 +3,7 @@ import { existsSync, readFileSync} from 'fs';
 import * as vscode from 'vscode';
 import {FsUtil} from '../../shared/lib/fsutil';
 import MultIgnore from '../../shared/lib/multignore';
+import { l10n } from 'vscode';
 
 import {
 	LanguageClient,
@@ -23,14 +24,14 @@ let statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem(vsco
 statusBarItem.hide();
 
 function showIndexingStatusBarMessage() {
-	statusBarItem.text = "$(zap) Shalldn working...";
-	statusBarItem.tooltip = "Shalldn language server is analyzing files in the workspace";
+	statusBarItem.text = "$(zap) "+l10n.t("Shalldn working...");
+	statusBarItem.tooltip = l10n.t("Shalldn language server is analyzing files in the workspace");
 	statusBarItem.show();
 }
 
 function showAnalyzingError() {
-	statusBarItem.text = "$(flame) Shalldn failed...";
-	statusBarItem.tooltip = "Shalldn failed analyzing files in the workspace";
+	statusBarItem.text = "$(flame) "+l10n.t("Shalldn failed...");
+	statusBarItem.tooltip = l10n.t("Shalldn failed analyzing files in the workspace");
 	statusBarItem.show();
 }
 
@@ -78,14 +79,25 @@ export function activate(context: vscode.ExtensionContext) {
 	const serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')
 	);
+
+	const serverEnv = vscode.l10n.uri ? { EXTENSION_BUNDLE_PATH: vscode.l10n.uri?.fsPath } : {};
 	// The debug options for the server
 	// --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging
-	const debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
+	const debugOptions = { 
+		env: serverEnv,
+		execArgv: ['--nolazy', '--inspect=6009'] 
+	};
 
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
 	const serverOptions: ServerOptions = {
-		run: { module: serverModule, transport: TransportKind.ipc },
+		run: { 
+			module: serverModule, 
+			transport: TransportKind.ipc,
+			options: {
+				env: serverEnv
+			}
+		},
 		debug: {
 			module: serverModule,
 			transport: TransportKind.ipc,
@@ -109,7 +121,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// Create the language client and start the client.
 	client = new LanguageClient(
 		'shalldnLanguageServer',
-		'Shalldn Language Server',
+		l10n.t("Shalldn Language Server"),
 		serverOptions,
 		clientOptions
 	);
@@ -122,6 +134,7 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	// $$Implements Editor.ERR.DEMOTE
+	// $$Реализует РЕДАКТОР.ОШИБКА.ПОНИЗИТЬ_СЕРЬЕЗНОСТЬ
 	context.subscriptions.push(
 		vscode.commands.registerCommand('shalldn.toggleErrWarn', async () => {
 			await client.sendRequest("toggleErrWarn",true);
@@ -141,14 +154,14 @@ export function activate(context: vscode.ExtensionContext) {
 			let progress: vscode.Progress<{ message?: string; increment?: number }>;
 			vscode.window.withProgress({
 				location: vscode.ProgressLocation.Notification,
-				title: "Exporting to Html",
+				title: l10n.t("Exporting to Html"),
 				cancellable: true
 			}, (p, token) => {
 				token.onCancellationRequested(() => {
 					console.log("User canceled the long running operation");
 				});
 
-				p.report({ increment: 0, message: "Exporting Shalldn project" });
+				p.report({ increment: 0, message: l10n.t("Exporting Shalldn project") });
 				progress = p;
 				const promise = new Promise<void>(async (resolve) => {
 					let ntfDsp = client.onNotification("exportHtml/progress", (data:{message?: string, increment?: number}) => {
@@ -157,14 +170,14 @@ export function activate(context: vscode.ExtensionContext) {
 						if (increment == -1) {
 							ntfDsp.dispose();
 							resolve();
-							vscode.window.showErrorMessage("Shalldn: Export failed --\r\n "+message);
+							vscode.window.showErrorMessage(l10n.t("Shalldn: Export failed")+" --\r\n "+message);
 						} 
 						if (increment<100)
 							p.report({ increment, message});
 						else {
 							ntfDsp.dispose();
 							resolve();
-							vscode.window.showInformationMessage("Shalldn: Export completed");
+							vscode.window.showInformationMessage(l10n.t("Shalldn: Export completed"));
 							vscode.env.openExternal(URI.file(message));
 						}
 					});
@@ -177,7 +190,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('shalldn.coverageReport', async () => {
-			const uri = await vscode.window.showSaveDialog({ title: 'Create coverage report', saveLabel: "Create", filters: { 'Html': ['html'],  }, defaultUri: vscode.Uri.file('coverage.html') });
+			const uri = await vscode.window.showSaveDialog({ title: l10n.t("Create coverage report"), saveLabel: l10n.t("Create"), filters: { 'Html': ['html'],  }, defaultUri: vscode.Uri.file('coverage.html') });
 			if (!uri) {
 				return;
 			}
@@ -185,14 +198,14 @@ export function activate(context: vscode.ExtensionContext) {
 			let progress: vscode.Progress<{ message?: string; increment?: number }>;
 			vscode.window.withProgress({
 				location: vscode.ProgressLocation.Notification,
-				title: "Creating coverage report",
+				title: l10n.t("Creating coverage report"),
 				cancellable: true
 			}, (p, token) => {
 				token.onCancellationRequested(() => {
 					console.log("User canceled the long running operation");
 				});
 
-				p.report({ increment: 0, message: "Analyzing Shalldn project" });
+				p.report({ increment: 0, message: l10n.t("Analyzing Shalldn project") });
 				progress = p;
 				const promise = new Promise<void>(async (resolve) => {
 					let ntfDsp = client.onNotification("coverageReport/progress", (data:{message?: string, increment?: number}) => {
@@ -201,14 +214,14 @@ export function activate(context: vscode.ExtensionContext) {
 						if (increment == -1) {
 							ntfDsp.dispose();
 							resolve();
-							vscode.window.showErrorMessage("Shalldn: Coverage report failed --\r\n "+message);
+							vscode.window.showErrorMessage(l10n.t("Shalldn: Coverage report failed")+" --\r\n "+message);
 						} 
 						if (increment<100)
 							p.report({ increment, message});
 						else {
 							ntfDsp.dispose();
 							resolve();
-							vscode.window.showInformationMessage("Shalldn: Report created");
+							vscode.window.showInformationMessage(l10n.t("Shalldn: Report created"));
 							vscode.env.openExternal(URI.file(message));
 						}
 					});
@@ -218,9 +231,6 @@ export function activate(context: vscode.ExtensionContext) {
 			});
 		})
 	);
-
-	// Start the client. This will also launch the server
-	client.start();
 
 	let files = {
 		include: ['*'],//['shalldn','js','ts','cs','g4','c','cpp'],
@@ -234,6 +244,7 @@ export function activate(context: vscode.ExtensionContext) {
 	})
 	vscode.workspace.findFiles('**/.gitignore').then(uris=>{
 		// $$Implements Analyzer.GITIGNORE
+		// $$Реализует СТРУКТАН.ИГНОР
 		uris.forEach(uri=>{
 			if (existsSync(uri.fsPath)) {
 				let txt = readFileSync(uri.fsPath).toString();
@@ -260,13 +271,14 @@ export function activate(context: vscode.ExtensionContext) {
 	})
 	.then(files => {
 		// $$Implements Analyzer.PROJECT
+		// $$Реализует СТРУКТАН.ПРОЕКТ
 		var uris: string[] = [];
 		files.forEach(uri => {
 			if (!ignore.ignores(uri.fsPath))
 				uris.push(uri.toString());
 		});
 
-		client.onReady().then(async () => {
+		client.start().then(async () => {
 			client.onRequest(new RequestType('analyzeStart'), ()=>{
 				showIndexingStatusBarMessage();				
 			})

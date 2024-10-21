@@ -18,6 +18,7 @@ Feature: Analyzer
     """
     Then the list shall contain reference from the file "non-requirement.txt" with id "Test.Analyzer.CMNT_IMPLMNT" that follows the text "$$Implements"
 
+    @en_only
     Scenario: Analyzer.ERR.NOIMPL_TGT for requirements document
     Given the test file named "tests.shalldn" is opened
     Then editor problems shall include error with the text:
@@ -25,6 +26,7 @@ Feature: Analyzer
     Implementation of non-existing requirement Non.Existing.Requirement
     """
 
+    @en_only
     Scenario: Analyzer.ERR.NOIMPL_TGT for non-requirements document
     Given the test file named "non-requirement.txt" is opened
     Then editor problems shall include error with the text:
@@ -32,6 +34,7 @@ Feature: Analyzer
     Implementation of non-existing requirement Non.Existing.Requirement
     """
 
+    @en_only
     Scenario: Analyzer.ERR.XREF_TGT**
     Given the test file named "tests.shalldn" is opened
     Then editor problems shall include error with the text:
@@ -67,6 +70,7 @@ Feature: Analyzer
     Then the list shall contain reference from the file "tests.feature" with id "Test.Parser.IMPLMNT_INDVDL" that follows the text "Scenario:"
     And the list shall contain reference from the file "tests.feature" with id "Test.Parser.IMPLMNT_INDVDL" that follows the text "Outline:"
 
+    @en_only
     Scenario: Analyzer.TEST.NO_TGT with inline test clause
     # also $$Tests Analyzer.TEST.CLAUSE
     Given the test file named "non-requirement.txt" is opened
@@ -75,7 +79,7 @@ Feature: Analyzer
     Test of non-existing requirement Non.Existing.Requirement
     """
 
-
+    @en_only
     Scenario: Analyzer.TEST.NO_TGT with gherkin scenario test clause
     # also $$Tests Analyzer.TEST.GHERKIN
     Given the test file named "tests.feature" is opened
@@ -84,6 +88,7 @@ Feature: Analyzer
     Test of non-existing requirement Non.Existing.Requirement
     """
 
+    @en_only
     Scenario: Analyzer.TEST.NO_TGT with gherkin scenario test clause for scenario outline
     # also $$Tests Analyzer.TEST.GHERKIN
     Given the test file named "tests.feature" is opened
