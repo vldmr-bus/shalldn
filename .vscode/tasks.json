@@ -23,7 +23,7 @@
 				"cwd": "${workspaceRoot}/shalldn-ls"
 			},
 			"dependsOn": [
-				"antlr4ts"
+				"antlr4ng"
 			],
 			"label": "npm: compile"
 		},
@@ -42,7 +42,7 @@
 		},
 		{
 			"type": "npm",
-			"script": "antlr4ts",
+			"script": "antlr4ng",
 			"group": "build",
 			"presentation": {
 				"echo": true,
@@ -58,7 +58,7 @@
 			"options": {
 				"cwd": "${workspaceRoot}/shalldn-ls/server"
 			},
-			"label": "antlr4ts"
+			"label": "antlr4ng"
 		},
 		{
 			"type": "npm",

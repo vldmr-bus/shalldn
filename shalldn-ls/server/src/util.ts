@@ -1,23 +1,26 @@
-import { ParserRuleContext, Token } from 'antlr4ts'
+import { ParserRuleContext, Token } from 'antlr4ng'
 import { type } from 'os';
 import * as fs from "fs";
 import path = require('path');
 import { Position, Range } from 'vscode-languageserver-types'
 
 export namespace Util {
-	export function rangeOfContext(ctx: ParserRuleContext, inset?:number):Range {
+	export function rangeOfContext(ctx: ParserRuleContext|undefined, inset?:number):Range {
 		inset = inset||0;
+		if (!ctx || !ctx.start) {
+			return { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
+		}
 		let stop = ctx.stop||ctx.start;
 		return {
-			start: { line: ctx.start.line-1, character: ctx.start.charPositionInLine+inset },
-			end: { line: stop.line-1, character: stop.charPositionInLine + (stop.text?.length||0)-inset }
+			start: { line: ctx.start.line-1, character: ctx.start.column+inset },
+			end: { line: stop.line-1, character: stop.column + (stop.text?.length||0)-inset }
 		}
 	}
 	export function startOfContext(ctx: ParserRuleContext): Position {
-		return { line: ctx.start.line-1, character: ctx.start.charPositionInLine };
+		return { line: (ctx.start?.line??-1)-1, character: ctx.start?.column??0 };
 	}
 	export function startOfToken(t: Token): Position {
-		return { line: t.line-1, character: t.charPositionInLine };
+		return { line: t.line-1, character: t.column };
 	}
 	export function lineRangeOfPos(p: Position):Range {
 		return {

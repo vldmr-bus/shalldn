@@ -9,19 +9,19 @@
 	},
 	"dependencies": {
 		"@vscode/l10n": "0.0.18",
-		"antlr4ts": "^0.5.0-alpha.4",
+		"antlr4ng": "^3.0.7",
 		"express": "^4.17.2",
 		"marked": "^4.0.9",
 		"vscode-languageserver": "^9.0.0",
 		"vscode-languageserver-textdocument": "^1.0.12"
 	},
 	"scripts": {
-		"antlr4ts": "antlr4ts -visitor -o src/antlr shalldn.g4"
+		"antlr4ng": "antlr4ng -Dlanguage=TypeScript -visitor -o src/antlr shalldn.g4"
 	},
 	"devDependencies": {
 		"@types/express": "^4.17.13",
 		"@types/marked": "^4.0.1",
 		"@types/node": "^18",
-		"antlr4ts-cli": "^0.5.0-alpha.4"
+		"antlr4ng-cli": "^2.0.0"
 	}
 }

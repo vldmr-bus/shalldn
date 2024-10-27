@@ -5,7 +5,7 @@ import {execSync} from 'child_process';
 import * as fs from 'fs';
 import * as rx from 'rxjs';
 import { marked } from "marked";
-import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts';
+import { CharStream, CommonTokenStream, ParserRuleContext } from 'antlr4ng';
 import { shalldnLexer } from './antlr/shalldnLexer';
 import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, Sentence_with_listContext, SentenceContext, shalldnParser, TitleContext, XrefContext } from './antlr/shalldnParser';
 import { shalldnListener } from './antlr/shalldnListener';
@@ -15,10 +15,10 @@ import ShalldnRqDef from './model/ShalldnRqDef';
 import { Util } from './util';
 import LexerErrorListener from './LexerErrorListener';
 import ParseErrorListener from './ParseErrorListener';
-import { ParseTreeWalker } from 'antlr4ts/tree/ParseTreeWalker';
-import { ParseTreeListener } from 'antlr4ts/tree/ParseTreeListener';
+import { ParseTreeWalker } from 'antlr4ng';
+import { ParseTreeListener } from 'antlr4ng';
 import { Diagnostics, ShalldnDiagnostic } from './Diagnostics';
-import { Interval } from 'antlr4ts/misc/Interval';
+import { Interval } from 'antlr4ng';
 import ShalldnTermDef from './model/ShalldnTermDef';
 import MultIgnore from '../../shared/lib/multignore';
 import { URI } from 'vscode-uri';
@@ -150,13 +150,14 @@ const ImplementsRE = new RegExp(`\\$\\$(${kws("Implements").join("|")})`);
 const ImplTestRE = new RegExp(`\\$\\$(${[...kws("Implements"),...kws("Tests")].join("|")})`);
 const ScrenarioRE = new RegExp("(?:" + [...kws("Scenario"), ...kws("Scenario Outline")].join("|") +"):\\s*([\\w_А-я]+\\.[\\w_А-я.]+)([^\\w_А-я.]?|$)");
 
-class ShalldnProjectRqAnalyzer implements shalldnListener {
+class ShalldnProjectRqAnalyzer extends shalldnListener {
 	constructor(
 		private uri:string,
 		private proj: ShalldnProj
-	) { 
-			let d = dialect(uri)||'shalldn';
-			this.dialect = dialectKeywords[d];
+	) {
+		super();
+		let d = dialect(uri) || 'shalldn';
+		this.dialect = dialectKeywords[d];
 	}
 
 	private dialect: {[key:string]:string};
@@ -167,18 +168,18 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	private currentTermDef: ShalldnTermDef|undefined;
 	private currentInfrmlRq: ShalldnRqDef|undefined;
 
-	getText(ctx: ParserRuleContext|undefined):string {
-		if (!ctx)
+	getText(ctx: ParserRuleContext|null|undefined):string {
+		if (!ctx || !ctx.start)
 			return '';
-		let a = ctx.start.startIndex;
-		let b = ctx.stop?.stopIndex || ctx.start.stopIndex;
+		let a = ctx.start.start;
+		let b = ctx.stop?.stop || ctx.start.stop;
 		let interval = new Interval(a, b);
-		let s = ctx.start.inputStream?.getText(interval)||'';
+		let s = ctx.start.inputStream?.getTextFromInterval(interval)||'';
 		return s;
 	}
 
-	exitRequirement(ctx:RequirementContext) {
-		let id = ctx.bolded_id()?.IDENTIFIER()?.text || ctx.bolded_id()?.WORD()?.text||'';
+	exitRequirement = (ctx:RequirementContext) => {
+		let id = ctx.bolded_id()?.IDENTIFIER()?.getText() || ctx.bolded_id()?.WORD()?.getText()||'';
 		let range = Util.rangeOfContext(ctx);
 		let idRange = Util.rangeOfContext(ctx.bolded_id());
 		idRange.start.character+=2;
@@ -191,7 +192,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		};
 		let tags = ctx.tag();
 		if (tags)
-			def.tags = [...new Set<string>(tags.map(t=>t._id.text||l10n.t("Invalid tag")))];
+			def.tags = [...new Set<string>(tags.map(t=>t._id?.text||l10n.t("Invalid tag")))];
 		try {
 			this.proj.addRequirement(def);
 			//$$Implements Parser.ERR.NO_SUBJ
@@ -216,7 +217,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			// $$Implements Parser.WARN_RTNL
 			// $$Реализует СИНТАН.ОБОСН, СИНТАН.ПРЕДУПР.БЕЗ_РЕАЛ
 			if (list && list.ul_element().some(e => 
-				e.l_element().childCount && e.l_element().getChild(0)?.text.search(this.dialect['Rationale']+':')==0)) // $$Implements Parser.RTNL
+				e.l_element().getChildCount() && e.l_element().getChild(0)?.getText().search(this.dialect['Rationale']+':')==0)) // $$Implements Parser.RTNL
 			{
 				this.proj.addDiagnostic(this.uri,
 					Diagnostics.warning(
@@ -235,12 +236,12 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		}
 	}
 
-	exitTitle(ctx: TitleContext) {
+	exitTitle = (ctx: TitleContext) => {
 		this.subject = this.getText(ctx?._subject?.plain_phrase());
 		this.titleRange = Util.rangeOfContext(ctx);
 	}
 	
-	enterImplmnt(ctx: ImplmntContext) {
+	enterImplmnt = (ctx: ImplmntContext) => {
 		// $$Implements Parser.IMPLMNT.INDVDL
 		// $$Реализует СИНТАН.РЕАЛЕЗАЦИЯ.ИНД
 		let parentRq = (ctx.parent?.parent?.ruleIndex == shalldnParser.RULE_requirement) ? <RequirementContext>ctx.parent.parent:undefined;
@@ -267,11 +268,11 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 			});
 		else
 			ctx.bolded_id().forEach(x => ids.push({
-				id:x.IDENTIFIER()?.text || x.WORD()?.text||'',
+				id:x.IDENTIFIER()?.getText() || x.WORD()?.getText()||'',
 				range: Util.rangeOfContext(x,2)
 			}));
 		if (parentRq == null && (parentTitle || parentHeading) ) {
-			let level = (parentHeading)?parentHeading.hashes().childCount:1;
+			let level = (parentHeading)?parentHeading.hashes().getChildCount():1;
 			while (this.groupImplmentation.length && this.groupImplmentation[0].level>=level)
 				this.groupImplmentation.shift();
 			this.groupImplmentation.unshift({level,ids:ids.map(id=>id.id)});
@@ -281,10 +282,10 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 
 	// $$Implements Parser.XREF
 	// $$Реализует СИНТАН.ССЫЛКА
-	enterXref(ctx: XrefContext) {
+	enterXref = (ctx: XrefContext) => {
 		let ids: { id: string, range: Range }[] = [];
 		ctx.bolded_id().forEach(x=>ids.push({
-			id: x.IDENTIFIER()?.text || x.WORD()?.text || '',
+			id: x.IDENTIFIER()?.getText() || x.WORD()?.getText() || '',
 			range: Util.rangeOfContext(x,2)
 		}));
 		this.proj.addXrefs(this.uri, ctx, ids);
@@ -292,10 +293,10 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 
 	// $$Implements Parser.INLN_DEF_DRCT
 	// $$Реализует СИНТАН.ОПР.КНТ.ПРМ
-	enterDef_drct(ctx: Def_drctContext) {
+	enterDef_drct = (ctx: Def_drctContext) => {
 		let def: ShalldnTermDef = {
 			uri: this.uri,
-			subj: this.getText(ctx._subject.plain_phrase()),
+			subj: this.getText(ctx._subject?.plain_phrase()),
 			bodyRange: Util.rangeOfContext(ctx._body),
 			range: Util.rangeOfContext(ctx._subject)
 		};
@@ -304,8 +305,8 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 
 	// $$Implements Parser.INLN_DEF_REV
 	// $$Реализует СИНТАН.ОПР.КНТ.ОБР
-	enterDef_rev(ctx: Def_revContext) {
-		let body = ctx._body.plain_phrase();
+	enterDef_rev = (ctx: Def_revContext) => {
+		let body = ctx._body?.plain_phrase();
 		if (!body) {
 			this.proj.addDiagnostic(
 				this.uri,
@@ -326,7 +327,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 
 	// $$Implements Parser.INLN_DEF_IMP
 	// $$Реализует СИНТАН.ОПР.КНТ.ПОЛН
-	enterNota_bene(ctx: Nota_beneContext) {
+	enterNota_bene = (ctx: Nota_beneContext) => {
 		let subj = ctx.italiced_phrase().plain_phrase();
 		if (!subj) {
 			this.proj.addDiagnostic(
@@ -370,19 +371,19 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		this.currentTermDef = undefined;
 	}
 
-	enterHeading(ctx:HeadingContext) {
+	enterHeading = (ctx:HeadingContext) => {
 		if (this.currentTermDef) {
 			let range = Util.rangeOfContext(ctx);
 			this.completeTermDef(range.start);
 		}
-		let level = ctx.hashes().childCount;
+		let level = ctx.hashes().getChildCount();
 		if (this.defSectLevel&&this.defSectLevel >= level)
 			this.defSectLevel = undefined;
 
 		while (this.groupImplmentation.length && this.groupImplmentation[0].level >= level)
 			this.groupImplmentation.shift();
 
-		if (ctx.phrase().text == this.dialect["Definitions"]) {
+		if (ctx.phrase().getText() == this.dialect["Definitions"]) {
 			this.defSectLevel = level;
 			return;
 		}
@@ -439,8 +440,8 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 
 	enterSentence_with_list = (ctx: Sentence_with_listContext) => this.informalText(ctx);
 
-	exitDocument(ctx: DocumentContext) {
-		this.completeTermDef({line:ctx.stop!.line, character:ctx.stop!.charPositionInLine});
+	exitDocument = (ctx: DocumentContext) => {
+		this.completeTermDef({ line: ctx.stop!.line, character: ctx.stop!.column });
 	}
 
 }
@@ -722,7 +723,7 @@ export default class ShalldnProj {
 		this.Files.set(uri,fileData);
 
 		let analyzer = new ShalldnProjectRqAnalyzer(uri, this);
-		let inputStream = CharStreams.fromString(text);
+		let inputStream = CharStream.fromString(text);
 		let lexer = new shalldnLexer(inputStream);
 		// $$Implements Editor.PRBLM_PARSER
 		// $$Реализует РЕДАКТОР.ПРОБЛЕМЫ
@@ -838,7 +839,7 @@ export default class ShalldnProj {
 					let id = s.trim();
 					if (!id.match(/[\w_А-я]+\.[\w_А-я.]+/))
 						return;
-					let sp = line.search(id);
+					let sp = line.search(Util.escapeRegExp(id));
 					let idRange:Range={start:{line:l,character:sp},end:{line:l,character:sp+id.length}};
 					let ref: ShalldnRqRef = {uri, id, idRange, clauseRange, kind };
 					this.addRefNonRqFile(fileData!,ref);
