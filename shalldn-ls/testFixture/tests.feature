@@ -28,7 +28,7 @@ Examples:
     | 1    |
     | 2    |
 
-Scenario: NonExistantIdWithoutNameSpace_For_Scenario test fixture with scenario outline
+Scenario Outline: NonExistantIdWithoutNameSpace_For_Scenario test fixture with scenario outline
     Given: This scenario has invalid requirement id without NonExistantIdWithoutNameSpace_For_Scenario
     Then: It shall not be marked with error squiggle regardless of <case>
 Examples:

@@ -1,0 +1,21 @@
+
+{
+"shalldn":"Shalldn",
+"shalldn.descr": "Shalldn requirements language support",
+"shalldn.toggleTestWarn": "Toggle warnings for requirements without tests in this file",
+"shalldn.toggleErrWarn": "Toggle showing errors as warnings",
+"shalldn.exportHtml": "Export project as HTML files collection",
+"shalldn.coverageReport": "Create coverage report",
+"shalldn.dict.reveal": "Term definition",
+"shalldn.def.reveal": "Reveal",
+"shalldn.expand.all": "Expand All",
+"shalldnTags.ungroup": "Flat view",
+"shalldnTags.group": "Tree view",
+"shalldnDictionary": "Dictionary",
+"shalldnTags": "Tagged requirements",
+"shalldnDictionary.empty": "No terms are defined in the project",
+"shalldnTags.empty": "Requirements preceded with $Tag will be show here",
+"shalldnLanguageServer.maxNumberOfProblems": "Controls the maximum number of problems produced by the server.",
+"shalldn.config": "Shalldn configuration",
+"shalldn.explorer": "Shalldn Explorer"
+}

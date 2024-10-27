@@ -66,7 +66,7 @@ The parser **shall** indicate error condition when a requirement text contain on
 * "FIXME";
 
 **Parser.XREF**  
-The parser **shall** a text fragment enclosed in parenthesis starting with the word "see" followed by one or more comma separated *separately bolded* *identifier*s as a *cross-reference* *(n.b.)*.
+The parser **shall** recognize a text fragment enclosed in parenthesis starting with the word "see" followed by one or more comma separated *separately bolded* *identifier*s as a *cross-reference* *(n.b.)*.
 
 
 ## Term definitions

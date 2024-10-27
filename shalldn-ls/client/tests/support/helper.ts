@@ -133,8 +133,8 @@ export namespace helpers {
     }
 
     let global_id = 1;
-    const unique_id_re = /\{unique_id\}/g;
-    const unique_filename_re = /\{unique_filename\}/g;
+    const unique_id_re = /\{(?:unique_id|уникальный идентификатор)\}/g;
+    const unique_filename_re = /\{(?:unique_filename|уникальное имя)\}/g;
     export function expandTextVariables(text:string, test:Test) {
         if (unique_id_re.test(text)) {
             const uid = 'Test.'+(global_id++).toString();
@@ -148,7 +148,7 @@ export namespace helpers {
                 .replace(unique_filename_re, uname);
         }
         text = text
-            .replace(/\{that_id\}/g,test.thatId);
+            .replace(/\{(?:that_id|этот идентификатор)\}/g,test.thatId);
         
             return text;
     }

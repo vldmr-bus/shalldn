@@ -29,7 +29,7 @@ exports.run = async function run() {
 		paths: ['./**/*.feature']
 	}
 	if (process.env.CUCUMBER_TEST_NAME)
-		provided.name = process.env.CUCUMBER_TEST_NAME;
+		provided.name = [process.env.CUCUMBER_TEST_NAME];
 
 	try {
 		const { runConfiguration } = await api.loadConfiguration({ provided }, { cwd, stdout });

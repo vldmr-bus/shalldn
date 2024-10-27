@@ -24,6 +24,7 @@ Feature: Parser
 	This sub-section is an example of informal requirement, which can be implemented by formal requirements in other files.
 	"""
 
+	@en_only
 	Scenario: Parser.ERR.NO_JSTFCTN with existing file
 	# Existing file having requirement without implementation generates "Not implemented" error
 	Given the test file named "tests.shalldn" with requirement id "Test.Editor.INFO_NOIMPL"
@@ -32,6 +33,7 @@ Feature: Parser
 	Requirement Test.Editor.INFO_NOIMPL does not have any justification
 	"""
 
+	@en_only
 	Scenario: Parser.WARN_RTNL with existing file
 	# Existing file having requirement without implementation generates "Not implemented" error
 	Given the test file named "tests.shalldn" with requirement id "Parser.WARN_RTNL"
@@ -40,6 +42,7 @@ Feature: Parser
 	Requirement Test.Parser.WARN_RTNL is justified only by its rationale and by none of higher level requirements
 	"""
 
+	@en_only
 	Scenario: Parser.ERR.WORDS for TBD
 	Given the test file named "tests.shalldn" with requirement id "Test.Parser.TBD_test"
 	Then editor problems shall include error with the text:
@@ -47,6 +50,7 @@ Feature: Parser
 	Requirement Test.Parser.TBD_test contains TBD
 	"""
 
+	@en_only
 	Scenario: Parser.ERR.WORDS for TODO
 	Given the test file named "tests.shalldn" with requirement id "Test.Parser.TODO_test"
 	Then editor problems shall include error with the text:
@@ -54,6 +58,7 @@ Feature: Parser
 	Requirement Test.Parser.TODO_test contains TODO
 	"""
 
+	@en_only
 	Scenario: Parser.ERR.WORDS for FIXME
 	Given the test file named "tests.shalldn" with requirement id "Test.Parser.FIXME_test"
 	Then editor problems shall include error with the text:

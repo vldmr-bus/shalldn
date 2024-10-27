@@ -2,7 +2,7 @@ Feature: Editor
 
     Tests for the Shalldn editor requirements
 
-    @discard_changes
+    @discard_changes @en_only
     Scenario: Editor.INFO.NOIMPL with typing
     # Typing in new requirement with unique ID generates "Not implemented" error
     Given the test file named "tests.shalldn" is opened
@@ -16,6 +16,7 @@ Feature: Editor
     Requirement {that_id} does not have implementation
     """
 
+    @en_only
     Scenario: Editor.INFO.NOIMPL with existing file
     # Existing file having requirement without implementation generates "Not implemented" error
     Given the test file named "tests.shalldn" with requirement id "Test.Editor.INFO_NOIMPL"
@@ -24,6 +25,7 @@ Feature: Editor
     Requirement Test.Editor.INFO_NOIMPL does not have implementation
     """
 
+    @en_only
     Scenario: Editor.INFO.NOIMPL_DOC with existing file
     # Existing file having requirement without implementation generates "Not implemented" error
     Given the test file named "tests.shalldn" is opened
@@ -32,7 +34,7 @@ Feature: Editor
     No requirement in the document has implementation
     """
 
-    @discard_changes
+    @discard_changes @en_only
     Scenario: Editor.ERR.NO_IMPLMNT_TGT with typing
     # Typing in *implementation clause* for unique ID generates "Non existent requirement" error
     Given the test file named "tests.shalldn" is opened
@@ -45,7 +47,7 @@ Feature: Editor
     Implementation of non-existing requirement {that_id}
     """
 
-    @discard_changes
+    @discard_changes @en_only
     Scenario: Editor.INFO.NOIMPL with typing in new file
     Given a new file with name "{unique_filename}.shalldn" is created
     When the text below is appended to the end of the file
@@ -73,6 +75,7 @@ Feature: Editor
     No requirement in the document has implementation
     """
 
+    @en_only
     Scenario: Editor.INFO.NOIMPL_DOC with existing file file
     Given the test file named "lower-level.shalldn" is opened
     Then editor problems shall include info with the text:
@@ -80,7 +83,7 @@ Feature: Editor
     No requirement in the document has implementation
     """
 
-    @repeat_that_command_after_test
+    @repeat_that_command_after_test @en_only
     Scenario: Editor.TESTS with triggered warnings
     Given the test file named "tests.shalldn" with requirement id "Test.Parser.IMPLMNT_GRP.Link"
     And command 'Toggle warnings for requirements without tests in this file' was issued
@@ -89,6 +92,7 @@ Feature: Editor
     Requirement Test.Parser.IMPLMNT_GRP.Link does not have tests
     """
 
+    @en_only
     Scenario: Editor.TESTS without triggered warnings
     Given the test file named "tests.shalldn" with requirement id "Test.Parser.IMPLMNT_GRP.Link"
     Then editor problems shall not include a problem with the text:
@@ -257,10 +261,10 @@ Feature: Editor
     """
     **Test.Parser.IMPLMNT_INDVDL**
     """
-    Then total number of edits shall be 5
+    Then total number of edits shall be 6
     And the list of edits shall include 1 in file "lower-level.shalldn"
     And the list of edits shall include 1 in file "non-requirement.txt"
-    And the list of edits shall include 1 in file "tests.feature"
+    And the list of edits shall include 2 in file "tests.feature"
     And the list of edits shall include 1 in file "tests.shalldn"
     And the list of edits shall include 1 in file "test-definitions.shalldn"
 

@@ -48,6 +48,8 @@ analyzeFiles(uris)
 .then((files)=>{console.log(`Analyzed ${files.length} files`)});
 
 let watcher = fs.watch(root,{recursive:true,},(event,fpath)=>{
+	if (fpath===null)
+		return;
 	if (!/.shalldn$/.test(fpath))
 		return;
 	let uri = URI.file(fpath).toString();
