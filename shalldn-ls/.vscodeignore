@@ -1,4 +1,5 @@
 .vscode/**
+.vscode-test/**
 **/*.ts
 **/*.map
 .gitignore
@@ -7,6 +8,8 @@
 contributing.md
 .travis.yml
 client/node_modules/**
+client/tests/**
+testFixture/**
 !client/node_modules/vscode-jsonrpc/**
 !client/node_modules/vscode-languageclient/**
 !client/node_modules/vscode-languageserver-protocol/**

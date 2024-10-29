@@ -4,7 +4,7 @@
 	"description": "%shalldn.descr%",
 	"author": "Vladimir Avdonin",
 	"license": "MIT",
-	"version": "0.0.38",
+	"version": "0.0.39",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/vldmr-bus/shalldn"
@@ -182,11 +182,9 @@
 		"serve": "tsc -b && node ./server/out/http-server.js"
 	},
 	"devDependencies": {
-		"@cucumber/cucumber": "^11.0.0",
+		"@cucumber/cucumber": "^9.1.2",
 		"@types/mocha": "^8.2.2",
 		"@types/node": "^18",
-		"@typescript-eslint/eslint-plugin": "^4.23.0",
-		"@typescript-eslint/parser": "^4.23.0",
 		"@vscode/l10n-dev": "0.0.35",
 		"del-cli": "^4.0.1",
 		"eslint": "^7.26.0",

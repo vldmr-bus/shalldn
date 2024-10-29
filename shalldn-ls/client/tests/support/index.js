@@ -12,17 +12,7 @@ exports.run = async function run() {
 
 	const path = require("path");
 	const cwd = path.resolve(__dirname,"..");
-	const process = require("process");
-	if (!process.env.CODE_TESTS_WORKSPACE)
-		process.env.CODE_TESTS_WORKSPACE = path.resolve(cwd,'../../testFixture');
-	if (!process.env.CODE_TESTS_PATH)
-		process.env.CODE_TESTS_PATH = __dirname;
-	let argv = [
-		"node",
-		"cucumber-js",
-		cwd,
-	]
-		.concat(`--require-module ts-node/register -r support/*.ts`.split(' '));
+
 	let provided = {
 		requireModule: ['ts-node/register'],
 		require: ['support/*.ts'],

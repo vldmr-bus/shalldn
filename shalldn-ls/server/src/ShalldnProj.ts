@@ -838,7 +838,7 @@ export default class ShalldnProj {
 					let id = s.trim();
 					if (!id.match(/[\w_А-я]+\.[\w_А-я.]+/))
 						return;
-					let sp = line.search(id);
+					let sp = line.search(Util.escapeRegExp(id));
 					let idRange:Range={start:{line:l,character:sp},end:{line:l,character:sp+id.length}};
 					let ref: ShalldnRqRef = {uri, id, idRange, clauseRange, kind };
 					this.addRefNonRqFile(fileData!,ref);
