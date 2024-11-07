@@ -4,7 +4,7 @@
 	"description": "%shalldn.descr%",
 	"author": "Vladimir Avdonin",
 	"license": "MIT",
-	"version": "0.0.39",
+	"version": "0.0.40",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/vldmr-bus/shalldn"

@@ -835,8 +835,8 @@ export default class ShalldnProj {
 				let clauseRange={start:{line:l,character:m.index!},end:{line:l,character:line.length}};
 				let kind = line.match(ImplementsRE)?RefKind.Implementation:RefKind.Test;
 				line.substring(m.index!+m[0].length).split(',').forEach(s=>{
-					let id = s.trim();
-					if (!id.match(/[\w_А-я]+\.[\w_А-я.]+/))
+					let id = s.match(/[\w_А-я]+\.[\w_А-я.]+/)?.[0];
+					if (!id)
 						return;
 					let sp = line.search(Util.escapeRegExp(id));
 					let idRange:Range={start:{line:l,character:sp},end:{line:l,character:sp+id.length}};
@@ -1215,7 +1215,7 @@ public analyzeFiles(files: string[], loader:(uri:string)=>Promise<string>): Anal
 				throw l10n.t("Can not create directory {0}", dstDir);
 			let md = this.expandMD(fp);
 			let html = marked.parse(md);
-			html = html.replace(new RegExp(`(<a href="[^#]+)(?:${Dialects.join('|')})#`,'g'),"$1.html#");
+			html = html.replace(new RegExp(`(<a href="[^#]+)\\.(?:${Dialects.join('|')})#`,'g'),"$1.html#");
 			let df = path.basename(fp,path.extname(fp))+".html";
 			fs.writeFileSync(path.resolve(dstDir,df),html);
 			rpaths.push(`${rp}/${df}`);

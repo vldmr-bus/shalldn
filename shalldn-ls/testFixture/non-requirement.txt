@@ -1,4 +1,4 @@
-Non-requirement file to test reference from implementation clause. # $$Implements Test.Parser.IMPLMNT_INDVDL, Test.Analyzer.CMNT_IMPLMNT
+Non-requirement file to test reference from implementation clause. <!--$$Implements Test.Parser.IMPLMNT_INDVDL, Test.Analyzer.CMNT_IMPLMNT -->
 
 Here is implementation for non-existant id. # $$Implements Non.Existing.Requirement
 
