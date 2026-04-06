@@ -26,7 +26,8 @@ Feature: Parser
 
 	@en_only
 	Scenario: Parser.ERR.NO_JSTFCTN with existing file
-	# Existing file having requirement without implementation generates "Not implemented" error
+	# $$Tests Parser.ERR.NO_JSTFCTN
+	# Requirement with no justification at all generates a no-justification error
 	Given the test file named "tests.shalldn" with requirement id "Test.Editor.INFO_NOIMPL"
 	Then editor problems shall include error with the text:
 	"""
@@ -34,12 +35,33 @@ Feature: Parser
 	"""
 
 	@en_only
-	Scenario: Parser.WARN_RTNL with existing file
-	# Existing file having requirement without implementation generates "Not implemented" error
-	Given the test file named "tests.shalldn" with requirement id "Parser.WARN_RTNL"
+	Scenario: Parser.WARN_RTNL.IND with existing file
+	# $$Tests Parser.WARN_RTNL.IND
+	# Requirement with individual rationale and no implementation clause generates warning
+	Given the test file named "tests.shalldn" with requirement id "Test.Parser.WARN_RTNL"
 	Then editor problems shall include warning with the text:
 	"""
 	Requirement Test.Parser.WARN_RTNL is justified only by its rationale and by none of higher level requirements
+	"""
+
+	@en_only
+	Scenario: Parser.WARN_RTNL.GRP with existing file
+	# $$Tests Parser.WARN_RTNL.GRP, Parser.RTNL.GRP
+	# Requirement within a section with group rationale and no group implementation generates warning
+	Given the test file named "tests.shalldn" with requirement id "Test.Parser.WARN_RTNL.GRP"
+	Then editor problems shall include warning with the text:
+	"""
+	Requirement Test.Parser.WARN_RTNL.GRP is justified only by its rationale and by none of higher level requirements
+	"""
+
+	@en_only
+	Scenario: Parser.RTNL.GRP prevents ERR.NO_JSTFCTN
+	# $$Tests Parser.RTNL.GRP, Parser.ERR.NO_JSTFCTN
+	# Requirement within a section with group rationale does NOT get a no-justification error
+	Given the test file named "tests.shalldn" with requirement id "Test.Parser.WARN_RTNL.GRP"
+	Then editor problems shall not include a problem with the text:
+	"""
+	Requirement Test.Parser.WARN_RTNL.GRP does not have any justification
 	"""
 
 	@en_only

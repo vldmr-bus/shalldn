@@ -53,11 +53,17 @@ The parser **shall** indicate error condition if a recognized *implementation cl
 **Parser.RTNL**  
 The parser **shall** recognize an unordered list item as a *rationale clause* *(n.b.)* for a requirement when its text starts with "Rationale:" and is a part of an unordered list immediately following the requirement.
 
-**Parser.ERR.NO_JSTFCTN**  
-The parser **shall** indicate error condition when a requirement that is not within a section with a *group implementation clause* and is not followed by unordered list that includes either *individual implementation clause* or *rationale clause*.
+**Parser.RTNL.GRP**  
+The parser **shall** recognize a *rationale clause* as a *group rationale clause* *(n.b.)* when it belongs to a list immediately following a title or heading.
 
-**Parser.WARN_RTNL**  
-The parser **shall** indicate warning condition when a requirement that is not within a section with a group *group implementation clause* and is not followed by unordered list that includes *rationale clause* but not an *individual implementation clause*.
+**Parser.ERR.NO_JSTFCTN**  
+The parser **shall** indicate error condition when a requirement that is not within a section with a *group implementation clause* or *group rationale clause* and is not followed by unordered list that includes either *individual implementation clause* or *rationale clause*.
+
+**Parser.WARN_RTNL.IND**  
+The parser **shall** indicate warning condition when a requirement that is not within a section with a group *group implementation clause* and is followed by unordered list that includes *rationale clause* but not an *individual implementation clause*.
+
+**Parser.WARN_RTNL.GRP**  
+The parser **shall** indicate warning condition when a requirement that is within a section with a group *group rationale clause* but not a group *group implementation clause* and is not followed by unordered list that includes an *individual implementation clause*.
 
 **Parser.ERR.WORDS**  
 The parser **shall** indicate error condition when a requirement text contain one of the words listed below not enclosed in quotation marks:

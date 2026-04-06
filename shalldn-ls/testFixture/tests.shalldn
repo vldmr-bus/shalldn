@@ -58,3 +58,9 @@ The implementation clause of this requirement **shall** be recognized even thoug
     * Second level item two;
 * First level item two;
 * Implements **sub-section of informal requirements**
+
+## Group rationale example
+* Rationale: this section tests the group rationale clause.
+
+**Test.Parser.WARN_RTNL.GRP**
+This requirement **shall** have a warning because it is in a section justified by group rationale only.

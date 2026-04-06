@@ -7,7 +7,7 @@ import * as rx from 'rxjs';
 import { marked } from "marked";
 import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts';
 import { shalldnLexer } from './antlr/shalldnLexer';
-import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, Sentence_with_listContext, SentenceContext, shalldnParser, TitleContext, XrefContext } from './antlr/shalldnParser';
+import { Def_drctContext, Def_revContext, DocumentContext, HeadingContext, ImplmntContext, Nota_beneContext, RequirementContext, Sentence_with_listContext, SentenceContext, shalldnParser, TitleContext, Ul_elementContext, XrefContext } from './antlr/shalldnParser';
 import { shalldnListener } from './antlr/shalldnListener';
 import { Capabilities } from './capabilities';
 import { integer, Location, LocationLink, Position, Range, _Connection } from 'vscode-languageserver';
@@ -163,6 +163,7 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 	public subject = '';
 	public titleRange?:Range;
 	private groupImplmentation:{level:integer,ids:string[]}[]=[];
+	private groupRationale:{level:integer}[]=[];
 	private defSectLevel:integer|undefined;
 	private currentTermDef: ShalldnTermDef|undefined;
 	private currentInfrmlRq: ShalldnRqDef|undefined;
@@ -209,20 +210,32 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		}
 		for (let _once of [1]) {
 			let list = ctx.list();
-			if (list && list.implmnt().length)
+			const hasIndivImpl = !!(list && list.implmnt().length);
+			if (hasIndivImpl)
 				break;
 			if (this.groupImplmentation.length)
 				break;
-			// $$Implements Parser.WARN_RTNL
-			// $$Реализует СИНТАН.ОБОСН, СИНТАН.ПРЕДУПР.БЕЗ_РЕАЛ
-			if (list && list.ul_element().some(e => 
-				e.l_element().childCount && e.l_element().getChild(0)?.text.search(this.dialect['Rationale']+':')==0)) // $$Implements Parser.RTNL
-			{
+			// $$Implements Parser.RTNL
+			const hasIndivRtnl = !!(list && list.ul_element().some(e =>
+				e.l_element().childCount && e.l_element().getChild(0)?.text.search(this.dialect['Rationale']+':')==0));
+			// $$Implements Parser.WARN_RTNL.GRP
+			// $$Реализует СИНТАН.ОБОСН
+			if (this.groupRationale.length) {
 				this.proj.addDiagnostic(this.uri,
 					Diagnostics.warning(
 						l10n.t("Requirement {0} is justified only by its rationale and by none of higher level requirements", id),
 						idRange
-					))
+					));
+				break;
+			}
+			// $$Implements Parser.WARN_RTNL.IND
+			// $$Реализует СИНТАН.ПРЕДУПР.БЕЗ_РЕАЛ
+			if (hasIndivRtnl) {
+				this.proj.addDiagnostic(this.uri,
+					Diagnostics.warning(
+						l10n.t("Requirement {0} is justified only by its rationale and by none of higher level requirements", id),
+						idRange
+					));
 				break;
 			}
 			// $$Implements Parser.ERR.NO_JSTFCTN
@@ -240,6 +253,26 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 		this.titleRange = Util.rangeOfContext(ctx);
 	}
 	
+	// $$Implements Parser.RTNL.GRP
+	enterUl_element(ctx: Ul_elementContext) {
+		let parentList = ctx.parent;
+		if (!parentList) return;
+		let grandparent = parentList.parent;
+		let isGroupLevel =
+			grandparent?.ruleIndex == shalldnParser.RULE_heading ||
+			grandparent?.ruleIndex == shalldnParser.RULE_title;
+		if (!isGroupLevel) return;
+		let elem = ctx.l_element();
+		if (!elem.childCount) return;
+		if (elem.getChild(0)?.text.search(this.dialect['Rationale']+':') != 0) return;
+		let level = (grandparent?.ruleIndex == shalldnParser.RULE_heading)
+			? (<HeadingContext>grandparent).hashes().childCount
+			: 1;
+		while (this.groupRationale.length && this.groupRationale[0].level >= level)
+			this.groupRationale.shift();
+		this.groupRationale.unshift({ level });
+	}
+
 	enterImplmnt(ctx: ImplmntContext) {
 		// $$Implements Parser.IMPLMNT.INDVDL
 		// $$Реализует СИНТАН.РЕАЛЕЗАЦИЯ.ИНД
@@ -381,6 +414,8 @@ class ShalldnProjectRqAnalyzer implements shalldnListener {
 
 		while (this.groupImplmentation.length && this.groupImplmentation[0].level >= level)
 			this.groupImplmentation.shift();
+		while (this.groupRationale.length && this.groupRationale[0].level >= level)
+			this.groupRationale.shift();
 
 		if (ctx.phrase().text == this.dialect["Definitions"]) {
 			this.defSectLevel = level;
