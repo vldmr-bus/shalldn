@@ -6,7 +6,8 @@ fragment DIGIT:[0-9];
 fragment CAPITAL_CHAR: [A-ZА-Я];
 
 NL: '\n';
-DSTAR: '**';
+DBL_STAR: '**';
+DBL_DOT: '..';
 STAR: '*';
 DUL: '__';
 UL: '_';
@@ -28,9 +29,9 @@ URL: ([hH][tT][tT][pP][sS]? | [fF][iI][lL][eE]) '://' [a-zA-Z0-9.&?/_\-+=]+ ;
 // $$Implements Parser.TAGGED_VALUE_RQ
 // $$Реализует СИНТАН.МЕТКА_С_ТЕКСТОМ
 tag: '$' id=WORD (':' value=~'\n'+ )?;
-bolded_id: ('**' (WORD|IDENTIFIER) '**' | '__' (WORD|IDENTIFIER) '__') ;
+bolded_id: (DBL_STAR (WORD|IDENTIFIER) DBL_STAR | DUL (WORD|IDENTIFIER) DUL) ;
 sentence_stop: '.'|';'|'!'|'?';
-punctuation: ','|'_'|'-'|'+'|':'|'('|')'|'['|']'|'{'|'}'|'/'|'$'|'<'|'>'|'='|'&'|'\''|'@'|'#'|'“'|'”'|'‘'|'’'|'–';
+punctuation: ','|'_'|'-'|'+'|':'|'('|')'|'['|']'|'{'|'}'|'/'|'$'|'<'|'>'|'='|'&'|'\''|'@'|'#'|'“'|'”'|'‘'|'’'|'–'|'%'|DBL_DOT;
 plain_phrase:( WORD|IDENTIFIER|NUMBER | QUOTED_FRAGMENT | CODE_FRAGMENT | URL) ( WORD|IDENTIFIER|NUMBER | QUOTED_FRAGMENT | punctuation | URL)*;
 italiced_phrase: (STAR plain_phrase STAR|UL plain_phrase UL);
 nota_bene: italiced_phrase NB;
